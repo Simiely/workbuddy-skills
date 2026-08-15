@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v1.1.0（2026-08-15）
+
+- 新增：github-contents-api-push v1（GitHub Contents API 推送技能）
+  - 沙箱内 git push 不通（/dev/tty 凭证错 / Connection reset）时的可靠通道
+  - 流程：连通性探测 → 逐文件 PUT（更新带 sha / 新建省略 / 删除 DELETE，中文路径分段 encodeURIComponent）→ raw md5 校验 → packed-refs 修正 → knowledge-base 盘点表回填
+  - 附带 `push_repo.js` 可复用脚本模板
+  - 已验证：vray-material-replacer（3 更新 + 3 新建 + 1 删除）、knowledge-base（中文路径更新），2026-08-15
+
 ## v1.0.0（2026-08-14）
 
 - 新增：scenario-walkthrough v3（场景走查技能）
