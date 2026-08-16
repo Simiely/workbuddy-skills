@@ -7,7 +7,7 @@ WorkBuddy 可复用技能（Skills）集——把验证有效的 AI 工作流沉
 | 技能 | 一句话 | 入口 | 状态 |
 |---|---|---|---|
 | **scenario-walkthrough** 场景走查 | 先按真实功能生成操作剧本（点哪→输什么→得什么），再逐条读代码模拟执行，找链路断裂/权限漏洞/状态机矛盾 | [skills/scenario-walkthrough/SKILL.md](skills/scenario-walkthrough/SKILL.md) | v3 稳定 |
-| **github-contents-api-push** GitHub API 推送 | 沙箱内 git push 不通时，用 GitHub Contents API 逐文件 PUT 推送（更新带 sha / 新建省略 / 删除 DELETE），含 packed-refs 修正与远端校验 | [skills/github-contents-api-push/SKILL.md](skills/github-contents-api-push/SKILL.md) | v1 已验证 |
+| **isolated-diag-page** 隔离诊断页 | 写独立诊断页实测环境/API 可用性与数据落盘（写后读回自证），用真实数据定位根因，不靠猜——适用 API/iframe/权限类反复修不好的 bug | [skills/isolated-diag-page/SKILL.md](skills/isolated-diag-page/SKILL.md) | v1 稳定 |
 
 ## 安装
 
