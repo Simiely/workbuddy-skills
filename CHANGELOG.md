@@ -7,6 +7,10 @@
   - 关键原则：「API 返回成功」≠「数据真实落盘」，写入后立即 read 读回自证
   - 附可复用模板 `templates/clipboard-diag.html`（剪贴板/浏览器 API 诊断页完整代码）
   - 含实战案例（富文本 Word 复制链路定位）+ 修复闭环 + 与 scenario-walkthrough 分工界定
+- 补齐：github-contents-api-push（GitHub Contents API 推送技能,此前已在远端、本地目录缺失）
+  - 沙箱 git push 不通时的可靠通道：Contents API 逐文件 PUT
+  - 覆盖：连通探测 → 更新/新建/删除 → 远端验证 → packed-refs 修正
+  - 附推送模板 `push_repo.js`
 - 文档：README 技能列表 / AGENTS 基线行 / DEVELOPMENT 坑记录（一坑一篇：诊断页实战）同步；新增技能流程"三件事→五件事"
 
 ## v1.0.0（2026-08-14）
