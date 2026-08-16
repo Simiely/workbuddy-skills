@@ -1,12 +1,13 @@
 # CHANGELOG
 
-## v1.1.0（2026-08-15）
+## v1.1.0（2026-08-16）
 
-- 新增：github-contents-api-push v1（GitHub Contents API 推送技能）
-  - 沙箱内 git push 不通（/dev/tty 凭证错 / Connection reset）时的可靠通道
-  - 流程：连通性探测 → 逐文件 PUT（更新带 sha / 新建省略 / 删除 DELETE，中文路径分段 encodeURIComponent）→ raw md5 校验 → packed-refs 修正 → knowledge-base 盘点表回填
-  - 附带 `push_repo.js` 可复用脚本模板
-  - 已验证：vray-material-replacer（3 更新 + 3 新建 + 1 删除）、knowledge-base（中文路径更新），2026-08-15
+- 新增：isolated-diag-page v1（隔离诊断页技能）
+  - 方法论 4 步：环境检测（iframe/API/权限）→ 单项实测 → 写后读回自证 → 端到端模拟 + 对比找干扰项
+  - 关键原则：「API 返回成功」≠「数据真实落盘」，写入后立即 read 读回自证
+  - 附可复用模板 `templates/clipboard-diag.html`（剪贴板/浏览器 API 诊断页完整代码）
+  - 含实战案例（富文本 Word 复制链路定位）+ 修复闭环 + 与 scenario-walkthrough 分工界定
+- 文档：README 技能列表 / AGENTS 基线行同步
 
 ## v1.0.0（2026-08-14）
 
