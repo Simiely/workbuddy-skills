@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-08-15（commit `44e67d3`）新增技能 github-contents-api-push v1（Skills 2 个）
+> 📌 **文档基线**：2026-08-16（v1.1.0：新增 isolated-diag-page 隔离诊断页技能——写后读回自证 + 模板；含 scenario-walkthrough v3）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
