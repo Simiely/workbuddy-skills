@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>浏览器 API 环境诊断</title>
+<style>
+body{background:#1A1A1A;color:#DADADA;font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;font-size:14px;padding:24px;max-width:720px;margin:0 auto;line-height:1.7}
+h1{color:#C9A96E;font-size:18px}
+.card{background:#2F2F2F;border-radius:12px;padding:16px 18px;margin:14px 0;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.card h3{margin:0 0 10px;font-size:14px}
+button{background:#C9A96E;color:#101014;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;margin-right:8px;font-weight:500}
+pre{background:#141414;border-radius:8px;padding:10px 12px;font-size:12px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:#9FBF8F}
+textarea{width:100%;height:70px;background:#141414;color:#DADADA;border:none;border-radius:8px;padding:10px;font-size:13px;font-family:inherit}
+.err{color:#E08A7A}.ok{color:#9FBF8F}
+</style>
+</head>
+<body>
+<h1>浏览器 API 环境诊断(模板)</h1>
+
+<div class="card">
+  <h3>1. 环境信息(先摸清场地)</h3>
+  <pre id="env">检测中…</pre>
+</div>
+
+<div class="card">
+  <h3>2. 写入 A:clipboard.write(多格式)</h3>
+  <button id="btnWrite">clipboard.write(html+plain)</button>
+  <pre id="rWrite">未测试</pre>
+</div>
+
+<div class="card">
+  <h3>3. 写入 B:execCommand('copy') + setData</h3>
+  <button id="btnExec">execCommand('copy')</button>
+  <pre id="rExec">未测试</pre>
+</div>
+
+<div class="card">
+  <h3>4. 读取 A:clipboard.read()</h3>
+  <button id="btnRead">clipboard.read()</button>
+  <pre id="rRead">未测试(先做 5 再读)</pre>
+</div>
+
+<div class="card">
+  <h3>5. 读取 B:paste 事件(下方粘贴内容)</h3>
+  <textarea id="ta" placeholder="先在目标应用复制内容,再 Ctrl+V 粘贴到这里"></textarea>
+  <pre id="rPaste">未粘贴</pre>
+</div>
+
+<div class="card">
+  <h3>6. 端到端模拟:把 5 粘贴的 html 复制并读回</h3>
+  <button id="btnE2e">复制粘贴到的 html(execCommand)</button>
+  <pre id="rE2e">先在第 5 项粘贴</pre>
+</div>
+
+<script>
+const out = (id, text, cls) => { const el = document.getElementById(id); el.textContent = text; el.className = cls || ""; };
+
+// 1. 环境:iframe 判定 + API 存在性 + 权限状态
+(async () => {
+  let permRead = "未知", permWrite = "未知";
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      permRead = (await navigator.permissions.query({ name: "clipboard-read" })).state;
+      permWrite = (await navigator.permissions.query({ name: "clipboard-write" })).state;
+    }
+  } catch (e) { permRead = "查询失败: " + e.message; }
+  out("env", [
+    "window !== top (iframe?): " + (window !== window.top),
+    "navigator.clipboard: " + (navigator.clipboard ? "存在" : "❌ 不存在"),
+    "ClipboardItem: " + (typeof ClipboardItem !== "undefined" ? "存在" : "❌ 不存在"),
+    "isSecureContext: " + window.isSecureContext,
+    "execCommand 类型: " + typeof document.execCommand,
+    "document.hasFocus(): " + document.hasFocus(),
+    "clipboard-read 权限: " + permRead,
+    "clipboard-write 权限: " + permWrite,
+  ].join("\n"));
+})();
+
+// 2. 写入 A + 写后读回自证
+document.getElementById("btnWrite").onclick = async () => {
+  const html = '<h3 style="font-size:20pt;color:rgb(200,60,60)">诊断标题</h3><p><b>加粗</b>正文</p>';
+  try {
+    await navigator.clipboard.write([new ClipboardItem({
+      "text/html": new Blob([html], { type: "text/html" }),
+      "text/plain": new Blob(["诊断纯文本"], { type: "text/plain" }),
+    })]);
+    out("rWrite", "✅ 写入成功\n" + await readBackHtml(), "ok");
+  } catch (e) { out("rWrite", "❌ " + e.name + " — " + e.message, "err"); }
+};
+
+// 3. 写入 B + 读回
+document.getElementById("btnExec").onclick = () => {
+  const html = '<h3 style="font-size:20pt;color:rgb(200,60,60)">诊断标题</h3><p><b>加粗</b>正文</p>';
+  try {
+    const holder = document.createElement("div");
+    holder.textContent = "诊断纯文本"; // 纯文本承载,不解析 html
+    holder.style.cssText = "position:fixed;top:-9999px;left:-9999px";
+    document.body.appendChild(holder); holder.focus();
+    const sel = window.getSelection(), range = document.createRange();
+    range.selectNodeContents(holder);
+    sel.removeAllRanges(); sel.addRange(range);
+    const onCopy = (e) => {
+      e.clipboardData.setData("text/html", html);
+      e.clipboardData.setData("text/plain", "诊断纯文本");
+      e.preventDefault();
+    };
+    document.addEventListener("copy", onCopy);
+    const ok = document.execCommand("copy");
+    document.removeEventListener("copy", onCopy);
+    sel.removeAllRanges(); holder.remove();
+    if (!ok) { out("rExec", "❌ execCommand 返回 false", "err"); return; }
+    readBackHtml().then(t => out("rExec", "✅ execCommand=true\n" + t, "ok"));
+  } catch (e) { out("rExec", "❌ " + e.message, "err"); }
+};
+
+// 4. 读取 A
+document.getElementById("btnRead").onclick = async () => {
+  try {
+    const items = await navigator.clipboard.read();
+    const lines = items.map(it => "types: " + it.types.join(","));
+    let html = "";
+    for (const it of items) if (it.types.includes("text/html")) { html = await (await it.getType("text/html")).text(); break; }
+    out("rRead", "✅ 读取成功\n" + lines.join(" | ") + "\nhtml 长度: " + html.length + "\n含 <style>: " + html.includes("<style") + "\n前 150 字: " + html.slice(0, 150), "ok");
+  } catch (e) { out("rRead", "❌ " + e.name + " — " + e.message, "err"); }
+};
+
+// 5. paste 事件(保存供第 6 项用)
+let lastHtml = "", lastPlain = "";
+document.getElementById("ta").addEventListener("paste", (e) => {
+  try {
+    lastHtml = e.clipboardData.getData("text/html") || "";
+    lastPlain = e.clipboardData.getData("text/plain") || "";
+    out("rPaste", "✅ html 长度: " + lastHtml.length + "\nplain 长度: " + lastPlain.length +
+      "\n含 <style>: " + lastHtml.includes("<style") + "\n含 xmlns:w: " + lastHtml.includes("xmlns:w") +
+      "\n前 150 字: " + lastHtml.slice(0, 150), lastHtml ? "ok" : "");
+  } catch (e) { out("rPaste", "❌ " + e.message, "err"); }
+});
+
+// 6. 端到端:execCommand 复制 paste 到的 html,读回验证(检查关键标记是否被浏览器处理)
+document.getElementById("btnE2e").onclick = () => {
+  if (!lastHtml) { out("rE2e", "请先在第 5 项粘贴", "err"); return; }
+  try {
+    const holder = document.createElement("div");
+    holder.textContent = lastPlain || lastHtml.replace(/<[^>]+>/g, "");
+    holder.style.cssText = "position:fixed;top:-9999px;left:-9999px";
+    document.body.appendChild(holder); holder.focus();
+    const sel = window.getSelection(), range = document.createRange();
+    range.selectNodeContents(holder);
+    sel.removeAllRanges(); sel.addRange(range);
+    const onCopy = (e) => {
+      e.clipboardData.setData("text/html", lastHtml);
+      e.clipboardData.setData("text/plain", lastPlain);
+      e.preventDefault();
+    };
+    document.addEventListener("copy", onCopy);
+    const ok = document.execCommand("copy");
+    document.removeEventListener("copy", onCopy);
+    sel.removeAllRanges(); holder.remove();
+    if (!ok) { out("rE2e", "❌ execCommand false", "err"); return; }
+    readBackHtml().then(t => out("rE2e", "✅ execCommand=true\n" + t, "ok"));
+  } catch (e) { out("rE2e", "❌ " + e.message, "err"); }
+};
+
+/** 写后读回自证:读取当前剪贴板 html,输出长度+关键标记 */
+async function readBackHtml() {
+  try {
+    const items = await navigator.clipboard.read();
+    const it = items.find(i => i.types.includes("text/html"));
+    if (!it) return "⚠️ 读回无 text/html 类型(写入实际失败!)";
+    const txt = await (await it.getType("text/html")).text();
+    return "读回 html 长度: " + txt.length +
+      "\n含 <style>: " + txt.includes("<style") +
+      "\n含 xmlns:w: " + txt.includes("xmlns:w") +
+      "\n含 <b>/<strong>: " + (txt.includes("<b") || txt.includes("<strong")) +
+      "\n前 200 字: " + txt.slice(0, 200);
+  } catch (e) { return "读回失败: " + e.name + " — " + e.message; }
+}
+</script>
+</body>
+</html>
