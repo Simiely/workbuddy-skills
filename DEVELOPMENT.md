@@ -58,6 +58,16 @@ skills/             每个技能一个子目录
 - 解决：`POST /user/repos` 建仓 → `PUT /repos/{owner}/{repo}/contents/{path}`（body：base64 content + message + branch）逐文件提交 → 更新已有文件先 `GET` 取 sha
 - 预防：token 走环境变量不进文件；发布附件走 `uploads.github.com`；token 用经典 PAT（`x-access-token:` 前缀仅 GitHub App 令牌）
 
+### 问题：浏览器 API/环境类 bug 反复修不好，补丁叠补丁
+
+**TL;DR**：沉淀为 isolated-diag-page 技能——写独立诊断页逐环节实测，写后读回自证，用真实数据定位而非猜测。
+
+- 问题：富文本复制链路"修了 10 轮还在失败"——iframe 权限假设、Chromium sanitize 假设、Word 行为假设全被实测推翻；补丁互相干扰
+- 根因：多环节链路（来源→捕获→存储→渲染→再复制）中不确定"哪个环节坏了"，靠猜必然错
+- 解决：独立诊断页（`public/diag.html`）逐项实测——①环境信息（iframe?API 存在?isSecureContext?）②clipboard.write ③execCommand ④clipboard.read ⑤paste 事件取 html ⑥readText ⑦端到端模拟+读回自证 ⑧xmlns 保留验证。关键原则：**「API 返回成功」≠「数据真实落盘」，写入后立即 read 读回比长度/关键标记**
+- 实测结论：环境非 iframe、API 全可用；Word 无格式 = Word 粘贴默认「合并格式」+ Chromium 122+ sanitize 剥 style 块（浏览器强制行为，非代码缺陷）；存入 html 捕获断点（paste 事件漏 text/html）才是真 bug
+- 预防：API/环境/多环节链路 bug 先写诊断页实测（skill 触发词"实测/为什么还是不行/找干扰项"），不直接改主应用
+
 ## 新增技能流程（行动清单）
 
 1. `skills/` 下建 `<技能名>/SKILL.md`（frontmatter + 三层正文）
