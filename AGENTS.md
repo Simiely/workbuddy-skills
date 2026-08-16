@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-08-16（v1.1.0：新增 isolated-diag-page 隔离诊断页技能——写后读回自证 + 模板；含 scenario-walkthrough v3）
+> 📌 **文档基线**：2026-08-16（v1.1.0，commit `bd84f6d`：新增 isolated-diag-page 隔离诊断页技能——写后读回自证 + 模板；含 scenario-walkthrough v3）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -20,7 +20,7 @@
 - 每个技能一个子目录，`SKILL.md` 为唯一入口，单文件交付
 - description 必须含触发词（如"走查""排查""模拟"），并写明核心价值
 - 中文文档；skill 正文三层结构：A 主线（必做）/ B 工具库（按需查）/ C 检查与沉淀
-- 新增技能三件事：`skills/` 加目录 + README 技能列表加行 + CHANGELOG 加版本节
+- 新增技能五件事：`skills/` 加目录 + README 技能列表加行 + CHANGELOG 加版本节 + AGENTS 基线行更新 + DEVELOPMENT 补坑记录
 
 ## 常用命令
 
