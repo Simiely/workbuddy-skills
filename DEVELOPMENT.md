@@ -75,3 +75,8 @@ skills/             每个技能一个子目录
 3. CHANGELOG.md 加版本节
 4. AGENTS.md 基线行更新（新日期 + 新 commit hash）
 5. 推送（Contents API，先本地测试再推）
+
+## 坑记录（一坑一篇）
+
+- **坑：SSOT 未收敛导致文档漂移**（2026-08-18，knowledge-retrieval-system 实战）——同一契约（API 参数/状态机/提交语义）散落在技术方案+4 本手册多处，改一处忘一处，改着改着手册之间打架。解法沉淀为 docs-ssot-convergence 技能：定义收敛到一份 Markdown（主线→支线→模块化三视角），手册引用不重复，旧快照标注降级。
+- **坑：文档级走查与代码走查的差异**（2026-08-18）——scenario-walkthrough 面向"读代码模拟执行"；代码未写时走查链路终点是**文档定义**，断裂=🔴。补检查清单 10 类坑型（声明≠可操作/写端点×版本语义/触发边界防环等），并入 docs-ssot-convergence。
