@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-08-18（v1.2.0：+ docs-ssot-convergence 文档 SSOT 收敛技能）
+> 📌 **文档基线**：2026-08-26（v1.3.0：+ minimal-repro-diagnosis 最小单元链路诊断技能）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈

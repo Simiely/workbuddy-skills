@@ -79,4 +79,5 @@ skills/             每个技能一个子目录
 ## 坑记录（一坑一篇）
 
 - **坑：SSOT 未收敛导致文档漂移**（2026-08-18，knowledge-retrieval-system 实战）——同一契约（API 参数/状态机/提交语义）散落在技术方案+4 本手册多处，改一处忘一处，改着改着手册之间打架。解法沉淀为 docs-ssot-convergence 技能：定义收敛到一份 Markdown（主线→支线→模块化三视角），手册引用不重复，旧快照标注降级。
+- **坑：数据在链路中静默丢失/被规范化，表现为"只还原一部分/部分生效"**（2026-08-26，clipboard-tool v0.6.12 实战）——富文本复制到 Word 只还原基础格式：①CSSOM `rule.style.cssText` 只序列化浏览器认识的属性，`tab-interval/mso-*` 等 Word 私有属性全丢、`word-wrap` 被改写为 `overflow-wrap`；②Word 文档级设置写在 `<body>` 标签上，`doc.body.innerHTML` 不含 body 自身属性，必然丢。两处都是"API 返回成功但数据被静默处理"。解法沉淀为 minimal-repro-diagnosis 技能：新建最小单元 → 链路拆 N 步 → 逐步对比 lost/gained → 差异步即根因 → 权威资料验证 → 修复 + 全链路回归。**关键原则：验证数据保真别用 read() 等"重写形式"API（clipboard.read() 返回剥壳片段会误报），要用真实接收端（如真实粘贴回读）验证。**
 - **坑：文档级走查与代码走查的差异**（2026-08-18）——scenario-walkthrough 面向"读代码模拟执行"；代码未写时走查链路终点是**文档定义**，断裂=🔴。补检查清单 10 类坑型（声明≠可操作/写端点×版本语义/触发边界防环等），并入 docs-ssot-convergence。
