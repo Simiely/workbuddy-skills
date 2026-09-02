@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v1.4.0（2026-09-02）
+
+- 新增：git-push-proxy-fix v1（Git 推送代理修复技能）
+  - 适用：`git push` 到 GitHub 反复失败（超时/Connection reset/Authentication failed），但 Clash 测速正常、curl 走代理也通——这种矛盾组合根因是 git 全局配置残留针对 github.com 的**空代理覆盖**（`http.https://github.com.proxy=`）强制直连被墙
+  - 4 步闭环：①可靠连通验证（避开 PowerShell `curl -w` 假失败）②查 git 全局配置空代理覆盖 ③`--unset-all` 删除修复 ④重试 push + 成功判定（看 `old..new main -> main`，防被 RemoteException 误报误导）
+  - 关键陷阱：PowerShell 下 `curl -w "%{http_code}"` 的 `%{}` 被 PS 解析为脚本块 → curl 报 bad argument（exit 43）输出 000 **假失败**，必须用无 `-w` 写法或 Invoke-WebRequest 验证
+  - 与 github-contents-api-push 分工：本技能修"git 通道可救"的情形；彻底连不上且 api.github.com 可达时切 Contents API
+  - 实战来源：Simiely/content-archive（2026-09-02）推送 v0.6.5 连挂 3 次，实为 git 全局两行空代理覆盖所致，删除后一次成功
+
 ## v1.3.0（2026-08-26）
 
 - 新增：minimal-repro-diagnosis v1（最小单元链路诊断技能）
