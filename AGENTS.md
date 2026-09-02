@@ -1,12 +1,12 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-08-26（v1.3.0：+ minimal-repro-diagnosis 最小单元链路诊断技能）
+> 📌 **文档基线**：2026-09-02（v1.4.0：+ git-push-proxy-fix Git 推送代理修复技能）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
 
 - WorkBuddy Skills：`SKILL.md` 格式（frontmatter 含 `name` + `description`，description 写触发词 + 适用对象 + 能力摘要）
-- 本机用户技能目录：`C:\Users\wandou\.workbuddy\skills\<技能名>\SKILL.md`
+- 本机用户技能目录：`C:\Users\2504\.workbuddy\skills\<技能名>\SKILL.md`
 
 ## 关键坑
 
