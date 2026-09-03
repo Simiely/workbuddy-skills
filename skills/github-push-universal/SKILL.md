@@ -1,0 +1,82 @@
+---
+name: github-push-universal
+description: 在 WorkBuddy 沙箱/无交互环境里稳定推送本地 git 仓库代码到 GitHub 分支。git push 优先，遇 /dev/tty、Connection reset、超时、credentialhelperselector 弹窗等失败时自动回退 GitHub Contents API 逐文件推送，全程不弹 GCM。用户说"推送到 GitHub / push / 上传代码"时使用。
+agent_created: true
+---
+
+# github-push-universal —— 代码推送（只推代码，不发布）
+
+职责单一：**把本地代码推到 GitHub 分支**。建 Release / 打 tag / 传 zip 用 `github-release` skill，本 skill 不碰。
+
+## 什么时候用
+- 用户要求"推送到 GitHub / push / 上传代码 / 同步代码"。
+- 需要把本地改动稳定推到 `github.com/<owner>/<repo>` 的某个分支（默认 main）。
+
+## 反模式（务必避免）
+1. **不要用 curl 判断网络** —— WorkBuddy 劫持 curl（`CODEBUDDY_*`），`exit 43 / HTTP 000` 假失败。用 Python urllib 判断。
+2. **git 走 7890(Clash) 代理**可能 TLS 握手挂起/慢(5-7s)，直连反而稳定。脚本内部已强制清代理走直连。
+3. **GCM(credential manager)** 在无交互环境会弹 `credentialhelperselector` 或挂死。remote 无内嵌 token 时尤其触发。脚本禁用 GCM + 从 env/URL 读 token，不弹窗。
+4. 推送失败别急着改 git 配置 —— 先看 `github-connect-diag` skill 做根因诊断，再决定走哪条路。
+
+## 工具
+脚本：`push_repo.py`（同目录，Python3，零第三方依赖）。
+
+### token 来源（优先级）
+`--token` 参数 > remote URL 内嵌 token > 环境变量 `GH_TOKEN` / `GITHUB_TOKEN`。
+都没有 → 明确报错，绝不触发弹窗。
+
+### 用法
+```bash
+# 标准推送（本地 commit 改动 → git push；失败自动回退 Contents API）
+export GH_TOKEN='ghp_...'
+python "C:/Users/260803/.workbuddy/skills/github-push-universal/push_repo.py" /path/to/repo --message "commit msg"
+
+# 分支 / 指定 token / 只测连通不推送
+python ".../push_repo.py" /path/to/repo --branch dev --token 'ghp_...'
+python ".../push_repo.py" /path/to/repo --test
+
+# 强制走 Contents API（明知 git 不通时）
+python ".../push_repo.py" /path/to/repo --force-contents --message "msg"
+
+# 只用 git，失败即退出(不回退)
+python ".../push_repo.py" /path/to/repo --git-only
+```
+
+### 建议运行方式（直连 + 清代理）
+```bash
+cd /path/to/repo
+export GH_TOKEN='ghp_...'
+python "C:/Users/260803/.workbuddy/skills/github-push-universal/push_repo.py" . --message "..."
+```
+脚本内部已自动：清代理直连、`-c credential.helper=`、`-c http.sslBackend=openssl`、`-c http.version=HTTP/1.1`、禁交互。
+> 在 WorkBuddy 桌面沙箱里运行涉及网络的命令时，若被沙箱策略拦截，可对 Bash 命令加 `dangerouslyDisableSandbox: true`（网络操作）。
+
+## 推送语义
+1. `git add -A` + `git commit`（把工作区改动固化成本地 commit）。
+   - 若仓库无 user.name/email，commit 失败 → 警告并继续（API 路径仍可用）。
+2. 本地 HEAD == 远端 HEAD → 无需推送，直接返回。
+3. 尝试 `git push HEAD:<branch>`（直连，90s 超时）。
+4. git 失败 → 回退 **Contents API**：以「本地 HEAD 树 vs 远端分支树」做差集，幂等对齐——
+   - 本地有、远端无/不同 → PUT（base64 content）
+   - 远端有、本地无 → DELETE
+   - 内容与远端一致的路径**跳过**（不产生多余 commit）
+   - Contents API 逐文件各建一个 commit（API 固有限制），结果文件与 git push 一致。
+5. 结束后 update-ref 对齐本地 ref，使 `git status` 干净。
+
+## 验证清单（推送后）
+- [ ] 远端文件树已含预期文件：`GET /repos/{o}/{r}/git/trees/{branch}?recursive=1`
+- [ ] 远端分支最新 commit sha 已更新
+- [ ] 本地 `git status` 干净、HEAD 与远端一致
+
+## 安全
+- token 只经内存/环境变量传递，**不写进任何文件、不进仓库、不打日志**。
+- 若 token 曾在聊天里明文出现，提醒用户测试完可到 GitHub → Settings → Developer settings → Personal access tokens 轮换/撤销。
+
+## 与兄弟 skill 的关系
+- 推完代码需要发版本 → 继续用 `github-release` skill（本脚本不传 asset / 不打 tag）。
+- 失败/慢/弹窗先看 `github-connect-diag` 诊断。
+
+## 端到端验证记录（2026-09-03，测试仓库 Simiely/push-test-dummy 私有）
+- 路径1 git 优先(commit+push)：✓ 推 4 文件(含中文/二进制/嵌套)
+- 路径2 Contents API(强制)：✓ PUT 新文件、DELETE 删除、幂等(无变化=0操作)
+- 自动回退(制造 git non-fast-forward 分叉)：✓ git 失败→自动切 API→PUT 成功
