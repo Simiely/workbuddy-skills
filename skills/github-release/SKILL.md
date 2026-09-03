@@ -14,7 +14,7 @@ agent_created: true
 
 ## 反模式（务必避免）
 1. **不要用 curl** —— WorkBuddy 劫持 curl（`CODEBUDDY_*`），`exit 43 / HTTP 000` 假失败。脚本内部全走 urllib。
-2. **不要靠 git push 打 tag** —— git 走 7890 代理会挂起，且无 tty 时 GCM 弹 `credentialhelperselector`。本脚本用 API POST `/git/refs` 建 tag，无弹窗。
+2. **不要靠 git push 打 tag** —— 无 tty 时 git 需要凭据会弹 `credentialhelperselector` 挂死（凭据层问题，**不是代理**；本机 7890 代理访问 github 是通的）。本脚本用 API POST `/git/refs` 建 tag，纯走 api.github.com，无 git 子进程、无弹窗、不受凭据层影响。
 3. **Release body 含反引号/换行必须走文件** —— bash 双引号包 `python -c "..."` 时反引号会被当作命令吞掉。body 先 `Write` 到文件，用 `--body <file>`。
 4. **token 不落盘、不进命令历史** —— 只经 `--token` / env `GH_TOKEN` / remote 内嵌传递。
 

@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.6.0（2026-09-03）
+
+- 新增：**github-env-fix v1**（推送/发布前环境修复）——git 三件套（connect-diag/push-universal/release）的**前置步骤**。职责：先检测并根治 git 凭据弹窗（全局设 `credential.helper=` + 删 `helperselector.selected`），确认 7890(Clash) 代理保留，跑完环境即就绪再交棒给兄弟 skill。含就绪检测清单 + 修复A(改前备份) + 验证 + 回滚 + 反模式。
+- 🔧 **修正认知（v1.5.0 及三个 git skill 曾写错）**：此前误以为"git 走 7890(Clash) 代理会 TLS 挂起、需清代理直连才通"。**实测证明这是错的**——用户墙内必须走 7890 代理才能访问 github，走代理**必通**；真正让 git 卡死/弹窗的是 **credential helper（helper-selector/GCM）**，不是代理。据此：
+  - 修正 `github-connect-diag` / `github-push-universal` / `github-release` 三个 SKILL.md 的"清代理直连"错误表述 → 统一为"**保留 7890 代理，只禁 credential helper**"。
+  - 修正 connect-diag 端口残留错误 `50730` → `51141`（WorkBuddy 注入隧道代理端口）。
+  - 修正 push-universal 反模式第 2 条：不再"清代理直连"，改为"保留 7890；脚本 run() 清的是 WorkBuddy 注入的 51141 env 代理隧道，清后 git 回落 .gitconfig 的 7890 好代理"。
+- 依据：用户实测 + WebSearch 高可信内容为前提，推翻历史臆测假设。方法论沉淀进 env-fix 的"⚠️ 必须先读本节"。
+- 与兄弟 skill 协作链路（AGENTS 已登记）：先 **github-env-fix**（根治弹窗）→ push-universal（推码）/ release（发布）；异常走 connect-diag。
+- 文档：README 技能列表加 env-fix 行 + 修正 connect-diag 描述 / CHANGELOG v1.6.0 / AGENTS 基线行 + 关键坑修正 / DEVELOPMENT 坑记录。
+
 ## v1.5.0（2026-09-03）
 
 - 新增：github 三件套（职责单一拆分）——把 git 相关能力从"分散 + 捆绑"重构为三个独立 skill：

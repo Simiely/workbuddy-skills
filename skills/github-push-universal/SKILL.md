@@ -14,9 +14,9 @@ agent_created: true
 
 ## 反模式（务必避免）
 1. **不要用 curl 判断网络** —— WorkBuddy 劫持 curl（`CODEBUDDY_*`），`exit 43 / HTTP 000` 假失败。用 Python urllib 判断。
-2. **git 走 7890(Clash) 代理**可能 TLS 握手挂起/慢(5-7s)，直连反而稳定。脚本内部已强制清代理走直连。
-3. **GCM(credential manager)** 在无交互环境会弹 `credentialhelperselector` 或挂死。remote 无内嵌 token 时尤其触发。脚本禁用 GCM + 从 env/URL 读 token，不弹窗。
-4. 推送失败别急着改 git 配置 —— 先看 `github-connect-diag` skill 做根因诊断，再决定走哪条路。
+2. **不要手动 `env -u http_proxy` 清代理后裸直连** —— 本用户墙内 github **必须走 7890(Clash) 代理**才通。注意区分：脚本 `run()` 会清掉 WorkBuddy 注入的 `127.0.0.1:51141` env 代理隧道（github 不通），清后 git **回落读 .gitconfig 的 `7890`**（通）。即：清的是 WorkBuddy 的坏隧道、保留的是你的 7890 好代理，git 最终走 7890。**切勿手动把 .gitconfig 的 7890 也删了**——那才真的连不上。
+3. **GCM(credential manager)** 在无交互环境会弹 `credentialhelperselector` 或挂死。remote 无内嵌 token 时尤其触发。脚本禁用 GCM（`-c credential.helper=`）+ 从 env/URL 读 token，不弹窗。**若频繁弹窗，先跑 `github-env-fix` 根治全局配置**。
+4. 推送失败别急着改 git 配置 —— 先看 `github-connect-diag` skill 做根因诊断，或先跑 `github-env-fix` 修环境，再决定走哪条路。
 
 ## 工具
 脚本：`push_repo.py`（同目录，Python3，零第三方依赖）。
@@ -42,20 +42,20 @@ python ".../push_repo.py" /path/to/repo --force-contents --message "msg"
 python ".../push_repo.py" /path/to/repo --git-only
 ```
 
-### 建议运行方式（直连 + 清代理）
+### 建议运行方式（走 7890 代理 + 禁 credential helper）
 ```bash
 cd /path/to/repo
 export GH_TOKEN='ghp_...'
 python "C:/Users/260803/.workbuddy/skills/github-push-universal/push_repo.py" . --message "..."
 ```
-脚本内部已自动：清代理直连、`-c credential.helper=`、`-c http.sslBackend=openssl`、`-c http.version=HTTP/1.1`、禁交互。
+脚本内部已自动：清掉 WorkBuddy 注入的 `51141` env 代理（git 回落读 .gitconfig 的 **7890** 走代理）、`-c credential.helper=`（禁弹窗）、`-c http.sslBackend=openssl`、`-c http.version=HTTP/1.1`、禁交互。
 > 在 WorkBuddy 桌面沙箱里运行涉及网络的命令时，若被沙箱策略拦截，可对 Bash 命令加 `dangerouslyDisableSandbox: true`（网络操作）。
 
 ## 推送语义
 1. `git add -A` + `git commit`（把工作区改动固化成本地 commit）。
    - 若仓库无 user.name/email，commit 失败 → 警告并继续（API 路径仍可用）。
 2. 本地 HEAD == 远端 HEAD → 无需推送，直接返回。
-3. 尝试 `git push HEAD:<branch>`（直连，90s 超时）。
+3. 尝试 `git push HEAD:<branch>`（走 7890 代理，90s 超时）。
 4. git 失败 → 回退 **Contents API**：以「本地 HEAD 树 vs 远端分支树」做差集，幂等对齐——
    - 本地有、远端无/不同 → PUT（base64 content）
    - 远端有、本地无 → DELETE
