@@ -13,6 +13,8 @@ DEVELOPMENT.md      开发者向：本文（架构 + 一坑一篇）
 CHANGELOG.md        版本记录（按版本分节，不拆）
 skills/             每个技能一个子目录
   <技能名>/SKILL.md   技能本体（frontmatter + 三层正文）
+  <技能名>/xxx.py     技能附带的工具脚本（如 push_repo.py / release_repo.py）
+skills/_archived/   已归档技能（不再维护，保留正文供查阅，SKILL.md 顶部加「⚠️ 已归档」标注）
 ```
 
 **SKILL.md 格式约定**：
@@ -49,6 +51,20 @@ skills/             每个技能一个子目录
 - 解决：步骤 6 停止条件四项全满足才停；强制停止（3 轮上限/预算盒）输出残余风险报告收尾
 - 预防：每轮输出轮次小结，四问驱动继续/停止
 
+### 问题：git 相关 skill 从"分散 + 捆绑"演进为职责单一的三件套
+
+**TL;DR**：4 个 git skill（仓库 2 + 本机 2）能力重叠、边界模糊；曾尝试合成 1 个大 skill 违背单一职责。最终按功能拆成 诊断/推送/发布 3 个独立 skill，各自职责单一、可独立也可串联。
+
+- 问题：workbuddy-skills 仓库有 git-push-proxy-fix（只诊断空代理覆盖）与 github-contents-api-push（Node 版 Contents 推送）；本机 ~/.workbuddy/skills 有 github-push-universal（Python，git 优先回退 API）与 github-release-windows。能力重叠（诊断 vs 推送 vs 发布混在 2-4 个 skill），且合成 1 个"大而全" skill 每次调用都要载入不相关上下文、违反单一职责。
+- 根因：增量生长，没有按"意图"划分 skill 边界；同一主题的命令细节散落多处。
+- 解决：按功能意图拆 3 个 skill——
+  1. `github-connect-diag`（诊断）：只回答"为什么连不上/弹窗/慢"，症状→根因对照表，含 7890 代理挂起、GCM 弹窗、curl 劫持、schannel、**空代理覆盖兜底**（git-push-proxy-fix 的根因收录为一条）。
+  2. `github-push-universal`（推送）：只推代码到分支，git 优先自动回退 Contents API（Python）。
+  3. `github-release`（发布）：只打 tag + Release + 资产（Python 纯 API）。
+  旧 git-push-proxy-fix 与 github-contents-api-push 移入 skills/_archived/ 并标注被替代。
+- 预防：新能力先归位（属于诊断/推送/发布哪一类），不新增第 4 个"杂烩" skill；脚本统一 Python（仓库旧 github-contents-api-push 是 Node，已不采用，避免 Node/Python 两套并存）。
+- 归档语义：归档≠删除，保留正文供查阅（含旧 Node 细节、PowerShell curl 坑），SKILL.md 加 status:archived + 顶部横幅。
+
 ### 问题：GitHub 推送通道
 
 **TL;DR**：沙箱 git push 不通，改用 GitHub Contents API 逐文件 PUT（建仓 POST /user/repos → PUT contents → GET sha 更新）。
@@ -70,11 +86,20 @@ skills/             每个技能一个子目录
 
 ## 新增技能流程（行动清单）
 
-1. `skills/` 下建 `<技能名>/SKILL.md`（frontmatter + 三层正文）
+1. `skills/` 下建 `<技能名>/SKILL.md`（frontmatter + 三层正文）；如附脚本放同目录 `xxx.py`
 2. README.md 技能列表加行（名称/一句话/入口/状态）
 3. CHANGELOG.md 加版本节
 4. AGENTS.md 基线行更新（新日期 + 新 commit hash）
 5. 推送（Contents API，先本地测试再推）
+6. DEVELOPMENT.md 补坑记录（如有）
+
+## 归档技能流程（不再维护时）
+
+1. 目录移入 `skills/_archived/<技能名>/`
+2. 原 SKILL.md frontmatter 加 `status: archived`，正文顶部加「⚠️ 已归档」横幅（注明被谁替代 + 新用哪个 skill），旧正文保留
+3. README 主列表删除该行，归档区 `### 已归档` 表格加一行
+4. CHANGELOG 加版本节说明
+5. AGENTS 基线行更新；约定段补归档惯例
 
 ## 坑记录（一坑一篇）
 
@@ -82,3 +107,4 @@ skills/             每个技能一个子目录
 - **坑：数据在链路中静默丢失/被规范化，表现为"只还原一部分/部分生效"**（2026-08-26，clipboard-tool v0.6.12 实战）——富文本复制到 Word 只还原基础格式：①CSSOM `rule.style.cssText` 只序列化浏览器认识的属性，`tab-interval/mso-*` 等 Word 私有属性全丢、`word-wrap` 被改写为 `overflow-wrap`；②Word 文档级设置写在 `<body>` 标签上，`doc.body.innerHTML` 不含 body 自身属性，必然丢。两处都是"API 返回成功但数据被静默处理"。解法沉淀为 minimal-repro-diagnosis 技能：新建最小单元 → 链路拆 N 步 → 逐步对比 lost/gained → 差异步即根因 → 权威资料验证 → 修复 + 全链路回归。**关键原则：验证数据保真别用 read() 等"重写形式"API（clipboard.read() 返回剥壳片段会误报），要用真实接收端（如真实粘贴回读）验证。**
 - **坑：文档级走查与代码走查的差异**（2026-08-18）——scenario-walkthrough 面向"读代码模拟执行"；代码未写时走查链路终点是**文档定义**，断裂=🔴。补检查清单 10 类坑型（声明≠可操作/写端点×版本语义/触发边界防环等），并入 docs-ssot-convergence。
 - **坑：git push 反复失败但代理正常，根因是 git 全局空代理覆盖**（2026-09-02，content-archive 实战）——推送 v0.6.5 连挂 3 次（超时 21s→Connection reset→Authentication failed），Clash 测速正常、curl 走代理访问 github 通。根因：`git config --global -l` 残留 `http.https://github.com.proxy=` 与 `https.https://github.com.proxy=` 两行**空值**，git 对 github.com 强制直连被墙。解法沉淀为 git-push-proxy-fix 技能：可靠连通验证（避 PowerShell `curl -w` 假失败）→ 定位空覆盖 → `--unset-all` 删除 → 看 `old..new main -> main` 判成功。**关键陷阱：PowerShell 下 `curl.exe -w "%{http_code}"` 的 `%{}` 被 PS 当脚本块解析，curl 报 bad argument（exit 43）输出 000 假失败，排查全程被误导；验证连通用无 `-w` 写法或 Invoke-WebRequest。**
+- **坑：环境可用但 git 客户端弹 GCM 窗 / 代理挂起，git 通道不可靠，应切 API**（2026-09-03，workbuddy-skills 自身推送实战）——对公开仓库做 Contents API 拉取时 `git clone` 用内嵌 token URL 仍弹 `credentialhelperselector`（git 全局 credential.helper=manager + 无 tty）。改用 Python urllib 直接判网（api.github.com 200、token 有效）后确认问题仅在 git 客户端。**结论：git 三件套脚本全走 API（urllib）推送/发布，不必依赖 git 二进制；判断网络/连通一律 Python urllib，不用 curl。**
