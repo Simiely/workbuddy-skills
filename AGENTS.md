@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-09-03 `5b8a3e5`（v1.6.0：新增 github-env-fix 推送前环境修复 + 修正三个 git skill 的"清代理直连"错误认知→保留 7890 代理只禁 credential helper）
+> 📌 **文档基线**：2026-09-03 `1fe3e45`（v1.6.0：新增 github-env-fix 推送前环境修复 + 修正三个 git skill 的"清代理直连"错误认知→保留 7890 代理只禁 credential helper）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
