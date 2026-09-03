@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v1.5.0（2026-09-03）
+
+- 新增：github 三件套（职责单一拆分）——把 git 相关能力从"分散 + 捆绑"重构为三个独立 skill：
+  - **github-connect-diag v1**（诊断）：git push 失败/挂起/弹 credentialhelperselector 的根因诊断。症状→根因对照表（GCM 弹窗 / 7890 代理挂起 / curl 劫持假失败 / schannel SSL / 空代理覆盖兜底）+ Python urllib 判网（不用 curl）+ 清代理直连 + 禁 GCM。只诊断不推送。
+  - **github-push-universal v1**（推送，Python `push_repo.py`）：本地代码推到 GitHub 分支。git 优先 → 失败自动回退 GitHub Contents API（基于 HEAD 树 vs 远端树幂等对齐，PUT/DELETE，一致跳过）。只推代码不发布。
+  - **github-release v1**（发布，Python `release_repo.py`）：打 tag + 创建/更新 Release + 传 zip 资产，纯 API（urllib），幂等（tag 有 Release 则 PATCH）。只发布不推码。
+- 归档（移入 `skills/_archived/` + 标注）：
+  - git-push-proxy-fix → 诊断职责被 github-connect-diag 吸收（空代理覆盖列为兜底分支）
+  - github-contents-api-push → 推送职责被 github-push-universal 取代（Node → Python，含自动回退）
+- 拆分依据：把"诊断 + 推送 + 发布"合成一个大 skill 违背单一职责、每次载入不相关上下文；改为按功能逻辑拆 3 个可独立调用也能串联的 skill。
+- 与兄弟 skill 协作：先 push-universal 推码 → 再 release 发布；失败/慢/弹窗先 connect-diag 诊断。
+- 文档：README 技能列表 + 归档区 / AGENTS 基线行 + 关键坑 / DEVELOPMENT 坑记录 + 归档规范 同步。
+
 ## v1.4.0（2026-09-02）
 
 - 新增：git-push-proxy-fix v1（Git 推送代理修复技能）
