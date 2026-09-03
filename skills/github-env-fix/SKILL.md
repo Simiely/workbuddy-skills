@@ -24,7 +24,7 @@ version: 1.0.0
 3. **唯一真正的故障源**：git 需要凭据时，被 PortableGit 系统级 `etc/gitconfig` 的 `credential.helper = helper-selector` 拦截 → 弹 `credentialhelperselector` / GCM 凭据窗；无 tty 的沙箱会话里弹窗即**挂死**。
    - 触发条件：remote **无内嵌 token**，且目标需凭据（如私有仓库写操作）。
    - 系统级 `helper-selector` 由 PortableGit 出厂预设（`git-credential-helper-selector.exe`），**不要改系统级 gitconfig**（WorkBuddy 更新会覆盖）；在**全局** `~/.gitconfig` 覆盖即可。
-4. **token**：内嵌在 remote URL（`https://x-access-token:<PAT>@github.com/...`）或环境变量 `GH_TOKEN`。带 token 时 helper 完全不介入，无需任何弹窗。
+4. **token**：推荐使用环境变量 `GH_TOKEN`（唯一推荐做法），备选内嵌在 remote URL（`https://x-access-token:<PAT>@github.com/...`）。带 token 时 helper 完全不介入，无需任何弹窗。
 
 ---
 
@@ -80,6 +80,26 @@ git config --global --get credential.helperselector.selected  # 应报错/空（
 ```
 
 **回滚**：若需恢复，`git config --global credential.helper "!C:/Users/260803/.workbuddy/binaries/PortableGit/versions/1.2.0/mingw64/bin/git-credential-wincred.exe"`（或从备份 .gitconfig.bak 还原）。
+
+---
+
+## 配置 GH_TOKEN（推荐认证方式）
+
+修复弹窗后，私有仓库必须带 token 才能推送。**推荐使用 `GH_TOKEN` 环境变量**：
+
+```bash
+# 设置用户环境变量（持久生效，一次设置所有仓库共用）
+[Environment]::SetEnvironmentVariable("GH_TOKEN", "ghp_xxx", "User")
+
+# 设置完成后，兄弟 skill 自动读取使用
+```
+
+推荐理由：
+- **不落盘**：token 只在内存/环境变量传递，不写入 `.git/config` 或磁盘文件
+- **全局生效**：所有仓库自动共用，无需逐个修改 remote URL
+- **零弹窗**：脚本自动将 `GH_TOKEN` 内嵌到推送 URL，credential helper 完全不介入
+
+> 兄弟 skill `github-push-universal` 和 `github-release` 已内置对 `GH_TOKEN` 的支持，优先级：`--token` 参数 > URL 内嵌 > `GH_TOKEN` > `GITHUB_TOKEN`。
 
 ---
 

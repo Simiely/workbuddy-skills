@@ -12,6 +12,25 @@ agent_created: true
 - 用户要求"推送到 GitHub / push / 上传代码 / 同步代码"。
 - 需要把本地改动稳定推到 `github.com/<owner>/<repo>` 的某个分支（默认 main）。
 
+## 前置条件（必读）
+
+**使用本 skill 推送前，必须确保 `GH_TOKEN` 环境变量已设置。** 这是推荐的认证方式，优先级高于 URL 内嵌 token。
+
+```bash
+# 设置 GH_TOKEN（Windows 用户环境变量，持久生效）
+[Environment]::SetEnvironmentVariable("GH_TOKEN", "ghp_xxx", "User")
+
+# 或在当前会话中设置
+$env:GH_TOKEN = "ghp_xxx"
+```
+
+为什么推荐 `GH_TOKEN` 而非 URL 内嵌 token：
+- 🔒 **不进文件**：token 只在环境变量中传递，不写入 `.git/config` 或其他文件
+- 🔄 **全局生效**：所有仓库共用，无需逐一修改 remote URL
+- 🚫 **不弹窗**：脚本自动读 `GH_TOKEN` 并内嵌到推送 URL，credential helper 完全不介入
+
+> ⚠️ 若 `GH_TOKEN` 未设置，脚本会明确报错并拒绝执行，绝不触发 GCM 弹窗。
+
 ## 反模式（务必避免）
 1. **不要用 curl 判断网络** —— WorkBuddy 劫持 curl（`CODEBUDDY_*`），`exit 43 / HTTP 000` 假失败。用 Python urllib 判断。
 2. **不要手动 `env -u http_proxy` 清代理后裸直连** —— 本用户墙内 github **必须走 7890(Clash) 代理**才通。注意区分：脚本 `run()` 会清掉 WorkBuddy 注入的 `127.0.0.1:51141` env 代理隧道（github 不通），清后 git **回落读 .gitconfig 的 `7890`**（通）。即：清的是 WorkBuddy 的坏隧道、保留的是你的 7890 好代理，git 最终走 7890。**切勿手动把 .gitconfig 的 7890 也删了**——那才真的连不上。
@@ -22,7 +41,18 @@ agent_created: true
 脚本：`push_repo.py`（同目录，Python3，零第三方依赖）。
 
 ### token 来源（优先级）
-`--token` 参数 > remote URL 内嵌 token > 环境变量 `GH_TOKEN` / `GITHUB_TOKEN`。
+**推荐使用 `GH_TOKEN` 环境变量**（推荐做法）：
+```bash
+# 设置 GH_TOKEN（只一次，全局生效）
+$env:GH_TOKEN = "ghp_..."
+```
+
+优先级从高到低：
+1. `--token` 参数（显式指定，优先级最高）
+2. remote URL 内嵌 token（如 `https://x-access-token:TOKEN@github.com/...`）
+3. **`GH_TOKEN` 环境变量**（推荐，全局生效不落盘）
+4. `GITHUB_TOKEN` 环境变量（备选）
+
 都没有 → 明确报错，绝不触发弹窗。
 
 ### 用法
