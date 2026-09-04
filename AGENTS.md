@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-09-04 `848345d`（v1.7.0：新增 wpf-visual-tree-ai-eyes WPF AI 眼睛自动视觉验收 skill——self-hosted 接入 + screenBounds 量化 + 布局位移验收，沉淀自 clipboard-tool exe 实战）
+> 📌 **文档基线**：2026-09-04 `56ca955`（v1.7.1：github 三 skill 与 AGENTS 硬编码路径 260803 → `<USER>` 占位化去单机绑定）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
