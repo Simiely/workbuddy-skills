@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v1.7.0（2026-09-04）
+
+- 新增：**wpf-visual-tree-ai-eyes v1**（WPF"AI 眼睛"自动视觉验收，沉淀自 clipboard-tool exe 项目实战）——让 AI 直接读运行中 WPF 程序的元素树与控件坐标，用数字当证据验收 UI，替代"改→截图→再改"人工往返：
+  - **接入**：WpfVisualTreeMcp(self-hosted, DEBUG-only)两步接入——csproj Debug+Exists 条件引用 Inspector/Shared 两 DLL + `WPFMCP_INSPECTOR` 常量;App.xaml.cs OnStartup `#if` 内 `InspectorService.Initialize`。Release 构建纯净不含 inspector。
+  - **验收流**：run_in_background 托管启动 → attach(`Loaded (self-hosted)`)→ tree 美化看结构 → find 按 name/文本/类型定位拿 handle+screenBounds → click Invoke 驱动状态 → 前后对比出量化结论。
+  - **布局位移量化验收法**（实战沉淀）：隐藏控件→Auto 行高收缩→上移 / `*` 行吸收空间→向下拉伸（同一根因两方向）;修复用原位替换或 MinHeight=行内所有固定元素之和（含计算式）;验收=普通/模式中/退出三态基准 Y 全等 + 拉伸场景 meta/body 间距恒等。
+  - **上游坑登记**：① release 无 native bootstrapper→必须 self-hosted;② v0.12.0 Inspector NaN/∞ 输出非法 JSON（已本地 patch，重装需重打）;③ self-hosted props properties 为空（跨 runtime TypeDescriptor）→用坐标+交互代替属性读取。
+  - 路径全部泛化为 `<USER>`（不绑死单机），完整代码/patch/命令在 `references/wpfvisualtreemcp-setup.md`。
+- 文档：README 技能列表加行 / CHANGELOG v1.7.0 / AGENTS 基线行（下一提交补 hash）/ DEVELOPMENT 坑记录。
+
 ## v1.6.0（2026-09-03）
 
 - 新增：**github-env-fix v1**（推送/发布前环境修复）——git 三件套（connect-diag/push-universal/release）的**前置步骤**。职责：先检测并根治 git 凭据弹窗（全局设 `credential.helper=` + 删 `helperselector.selected`），确认 7890(Clash) 代理保留，跑完环境即就绪再交棒给兄弟 skill。含就绪检测清单 + 修复A(改前备份) + 验证 + 回滚 + 反模式。

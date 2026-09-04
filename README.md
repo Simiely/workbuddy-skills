@@ -14,6 +14,7 @@ WorkBuddy 可复用技能（Skills）集——把验证有效的 AI 工作流沉
 | **github-release** GitHub 版本发布 | 打 tag + 建/更新 Release + 传 zip 资产，纯 API（Python `release_repo.py`），幂等；先推码后发布 | [skills/github-release/SKILL.md](skills/github-release/SKILL.md) | v1 稳定 |
 | **docs-ssot-convergence** 文档 SSOT 收敛 | 分散多文档收敛为单一权威源(SSOT)+派生视图,按 主线→支线→模块化 三视角组织总领文档,手册去重引用,旧快照降级标注,最后文档级场景走查挖净死角(声明≠可操作/触发边界防环/版本语义真值表) | [skills/docs-ssot-convergence/SKILL.md](skills/docs-ssot-convergence/SKILL.md) | v1 稳定 |
 | **isolated-diag-page** 隔离诊断页 | 写独立诊断页实测环境/API 可用性与数据落盘（写后读回自证），用真实数据定位根因，不靠猜——适用 API/iframe/权限类反复修不好的 bug | [skills/isolated-diag-page/SKILL.md](skills/isolated-diag-page/SKILL.md) | v1 稳定 |
+| **wpf-visual-tree-ai-eyes** WPF AI 眼睛 | 让 AI 直接"看"运行中的 WPF 程序：self-hosted 接入（DEBUG-only，Release 纯净）→ 读元素树 / 按 name·文本·类型定位 → screenBounds 量化坐标间距位移 → 模拟点击驱动状态，给数字当证据替代截图往返；附布局位移（行高收缩/拉伸）量化验收法 | [skills/wpf-visual-tree-ai-eyes/SKILL.md](skills/wpf-visual-tree-ai-eyes/SKILL.md) | v1 稳定 |
 
 ### 已归档（见 skills/_archived/）
 
