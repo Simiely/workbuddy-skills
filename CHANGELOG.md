@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v1.7.1（2026-09-04）
+
+- 修订：github-env-fix / github-push-universal / github-release 三技能与 AGENTS.md 中硬编码的机器路径 `C:/Users/260803/...` 统一占位化为 `C:/Users/<USER>/...`（共 7 处），仓库不再绑死单机；github-env-fix「正确基线」节补一行说明：`<USER>` = 本机 Windows 用户名，移植时按实际用户名替换。
+- 约定：仓库内凡示例/本机路径一律用 `<USER>` 占位符；本地安装位（`~/.workbuddy/skills`）需 `sed -i 's|C:/Users/<USER>|C:/Users/<本机用户名>|g'` 后使用。
+
 ## v1.7.0（2026-09-04）
 
 - 新增：**wpf-visual-tree-ai-eyes v1**（WPF"AI 眼睛"自动视觉验收，沉淀自 clipboard-tool exe 项目实战）——让 AI 直接读运行中 WPF 程序的元素树与控件坐标，用数字当证据验收 UI，替代"改→截图→再改"人工往返：

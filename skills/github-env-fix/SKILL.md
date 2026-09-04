@@ -19,7 +19,9 @@ version: 1.0.0
 
 ## 正确基线（本机事实，勿改）
 
-1. **git 来源**：唯一 git 是 WorkBuddy 自带 `PortableGit`（当前 `C:/Users/260803/.workbuddy/binaries/PortableGit/versions/1.2.0/`）。无系统 Git。
+> 📝 路径中的 `<USER>` = 本机 Windows 用户名（源仓库记录于 260803 机器，移植到其它机器时按实际用户名替换，如 `C:/Users/2504/...`）。
+
+1. **git 来源**：唯一 git 是 WorkBuddy 自带 `PortableGit`（当前 `C:/Users/<USER>/.workbuddy/binaries/PortableGit/versions/1.2.0/`）。无系统 Git。
 2. **网络**：墙内，**必须走 `127.0.0.1:7890`(Clash) 代理**访问 github。走代理访问 github 实测**必通**（公开仓库、remote 内嵌 token 均正常返回）。
 3. **唯一真正的故障源**：git 需要凭据时，被 PortableGit 系统级 `etc/gitconfig` 的 `credential.helper = helper-selector` 拦截 → 弹 `credentialhelperselector` / GCM 凭据窗；无 tty 的沙箱会话里弹窗即**挂死**。
    - 触发条件：remote **无内嵌 token**，且目标需凭据（如私有仓库写操作）。
@@ -79,7 +81,7 @@ git config --global --get credential.helper   # 应无输出（空）
 git config --global --get credential.helperselector.selected  # 应报错/空（已删）
 ```
 
-**回滚**：若需恢复，`git config --global credential.helper "!C:/Users/260803/.workbuddy/binaries/PortableGit/versions/1.2.0/mingw64/bin/git-credential-wincred.exe"`（或从备份 .gitconfig.bak 还原）。
+**回滚**：若需恢复，`git config --global credential.helper "!C:/Users/<USER>/.workbuddy/binaries/PortableGit/versions/1.2.0/mingw64/bin/git-credential-wincred.exe"`（或从备份 .gitconfig.bak 还原）。
 
 ---
 

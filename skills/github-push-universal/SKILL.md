@@ -59,7 +59,7 @@ $env:GH_TOKEN = "ghp_..."
 ```bash
 # 标准推送（本地 commit 改动 → git push；失败自动回退 Contents API）
 export GH_TOKEN='ghp_...'
-python "C:/Users/260803/.workbuddy/skills/github-push-universal/push_repo.py" /path/to/repo --message "commit msg"
+python "C:/Users/<USER>/.workbuddy/skills/github-push-universal/push_repo.py" /path/to/repo --message "commit msg"
 
 # 分支 / 指定 token / 只测连通不推送
 python ".../push_repo.py" /path/to/repo --branch dev --token 'ghp_...'
@@ -76,7 +76,7 @@ python ".../push_repo.py" /path/to/repo --git-only
 ```bash
 cd /path/to/repo
 export GH_TOKEN='ghp_...'
-python "C:/Users/260803/.workbuddy/skills/github-push-universal/push_repo.py" . --message "..."
+python "C:/Users/<USER>/.workbuddy/skills/github-push-universal/push_repo.py" . --message "..."
 ```
 脚本内部已自动：清掉 WorkBuddy 注入的 `51141` env 代理（git 回落读 .gitconfig 的 **7890** 走代理）、`-c credential.helper=`（禁弹窗）、`-c http.sslBackend=openssl`、`-c http.version=HTTP/1.1`、禁交互。
 > 在 WorkBuddy 桌面沙箱里运行涉及网络的命令时，若被沙箱策略拦截，可对 Bash 命令加 `dangerouslyDisableSandbox: true`（网络操作）。

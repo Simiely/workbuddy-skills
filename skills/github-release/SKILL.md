@@ -29,7 +29,7 @@ agent_created: true
 ```bash
 # 标准发布：建 tag（指向本地 HEAD）+ 创建/更新 Release + 传 zip
 export GH_TOKEN='ghp_...'
-python "C:/Users/260803/.workbuddy/skills/github-release/release_repo.py" /path/to/repo \
+python "C:/Users/<USER>/.workbuddy/skills/github-release/release_repo.py" /path/to/repo \
   --tag v0.4.26 --body /path/to/release_notes.md --asset /path/to/App-v0.4.26.zip
 
 # 只自检（连通 + tag/Release 是否已存在），不写任何东西
@@ -44,7 +44,7 @@ python ".../release_repo.py" /path/to/repo --tag v1.0.0-rc1 --prerelease \
 ```bash
 cd /path/to/repo
 export GH_TOKEN='ghp_...'          # 用完即弃，勿落盘
-python "C:/Users/260803/.workbuddy/skills/github-release/release_repo.py" . \
+python "C:/Users/<USER>/.workbuddy/skills/github-release/release_repo.py" . \
   --tag v0.4.26 --body ./release_notes.md --asset ./dist/App-v0.4.26.zip
 ```
 脚本内部自动：读 remote 解析 owner/repo、读本地 HEAD 作为发布 commit、幂等建 tag、

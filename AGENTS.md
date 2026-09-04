@@ -6,7 +6,7 @@
 ## 技术栈
 
 - WorkBuddy Skills：`SKILL.md` 格式（frontmatter 含 `name` + `description`，description 写触发词 + 适用对象 + 能力摘要）
-- 本机用户技能目录：`C:\Users\260803\.workbuddy\skills\<技能名>\SKILL.md`
+- 本机用户技能目录：`C:\Users\<USER>\.workbuddy\skills\<技能名>\SKILL.md`
 - git 三件套附 Python 脚本（`push_repo.py` / `release_repo.py`，Python3 零依赖），非 Node
 
 ## 关键坑
