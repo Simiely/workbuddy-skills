@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-09-09 `<本次推送 hash>`（v1.8.0：新增 superellipse-icon 技能，文档含 README 列表 / CHANGELOG / DEVELOPMENT 坑记录）
+> 📌 **文档基线**：2026-09-09 `0052c6542b`（v1.8.0：新增 superellipse-icon 技能，文档含 README 列表 / CHANGELOG / DEVELOPMENT 坑记录）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
