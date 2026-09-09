@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v1.8.0（2026-09-09）
+
+- 新增：**superellipse-icon v1**（超椭圆图标裁剪/应用图标标准化）——沉淀自登录态切换器 app.ico 接入实战，把 WindowTinter 仓库的超椭圆图标标准固化：任意方形源图 → 超椭圆裁剪（n=4 大尺寸 / n=8 小尺寸）→ 6 分辨率 ICO（16/32/48/64/128/256, 32bpp PNG 条目）。
+  - **实现**：附零配置 `make_icon.py`（仅依赖 Pillow；掩膜超椭圆纯 Python 计算，无需 NumPy）；`--verify` 一键校验产物条目数/位深/格式。
+  - **核心坑固化**：① Pillow `img.save('.ico', sizes=..., append_images=...)` **只写第一张**（16px），必须手动组装 `ICONDIR + 逐尺寸 PNG 条目`；② 掩膜 `ss=4` 超采样 + `LANCZOS` 降采样得到四角抗锯齿软边（硬裁会锯齿）；③ 小尺寸指数 n=8（更方、小图清晰）、大尺寸 n=4（圆润）。
+  - **接入**：exe 用 PyInstaller `EXE(icon=...)` 嵌入；tkinter 窗口图标 `iconbitmap` 经 `App._apply_icon()` 设置（打包取 `sys._MEIPASS` 内附版、源码取工程根）。
+- 文档：README 技能列表加行 / CHANGELOG v1.8.0 / AGENTS 基线行更新（下一提交补 hash）/ DEVELOPMENT 坑记录。
+
 ## v1.7.1（2026-09-04）
 
 - 修订：github-env-fix / github-push-universal / github-release 三技能与 AGENTS.md 中硬编码的机器路径 `C:/Users/260803/...` 统一占位化为 `C:/Users/<USER>/...`（共 7 处），仓库不再绑死单机；github-env-fix「正确基线」节补一行说明：`<USER>` = 本机 Windows 用户名，移植时按实际用户名替换。
