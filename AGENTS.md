@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-09-24 `待补`（v1.9.0：新增 png-sequence-to-webp 技能（设计序列帧→WebP 单帧 + 动态动图 + 配色适配），文档含 README 列表 / CHANGELOG / DEVELOPMENT 坑记录）
+> 📌 **文档基线**：2026-09-24 `0f10283160`（v1.9.0：新增 png-sequence-to-webp 技能（设计序列帧→WebP 单帧 + 动态动图 + 配色适配），文档含 README 列表 / CHANGELOG / DEVELOPMENT 坑记录）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
