@@ -16,6 +16,7 @@ WorkBuddy 可复用技能（Skills）集——把验证有效的 AI 工作流沉
 | **isolated-diag-page** 隔离诊断页 | 写独立诊断页实测环境/API 可用性与数据落盘（写后读回自证），用真实数据定位根因，不靠猜——适用 API/iframe/权限类反复修不好的 bug | [skills/isolated-diag-page/SKILL.md](skills/isolated-diag-page/SKILL.md) | v1 稳定 |
 | **wpf-visual-tree-ai-eyes** WPF AI 眼睛 | 让 AI 直接"看"运行中的 WPF 程序：self-hosted 接入（DEBUG-only，Release 纯净）→ 读元素树 / 按 name·文本·类型定位 → screenBounds 量化坐标间距位移 → 模拟点击驱动状态，给数字当证据替代截图往返；附布局位移（行高收缩/拉伸）量化验收法 | [skills/wpf-visual-tree-ai-eyes/SKILL.md](skills/wpf-visual-tree-ai-eyes/SKILL.md) | v1 稳定 |
 | **superellipse-icon** 超椭圆图标 | 把方形源图按 WindowTinter 超椭圆标准裁成应用图标——超椭圆裁剪（n=4 大尺寸/n=8 小尺寸）+ 6 分辨率 ICO(16/32/48/64/128/256, 32bpp PNG 条目)；附零配置 `make_icon.py`（仅需 Pillow） | [skills/superellipse-icon/SKILL.md](skills/superellipse-icon/SKILL.md) | v1 稳定 |
+| **png-sequence-to-webp** 序列帧转 WebP | 设计序列帧（PNG/SVG/WebP）→ WebP 交付：**按组跑全量基准**定无损/有损（扁平·单色组无损更小且零误差，只有软渐变组才值得有损，混合模式严格占优）+ **容器级 mux 合成动态 WebP**（复用原始 VP8L 码流，避开 Pillow 偷合并帧、透明区残留上一帧两个坑）+ `--recolor` 配色替换（alpha 原样保留）；附 2 个零依赖脚本，均带双重核验 | [skills/png-sequence-to-webp/SKILL.md](skills/png-sequence-to-webp/SKILL.md) | v1 稳定 |
 
 ### 已归档（见 skills/_archived/）
 

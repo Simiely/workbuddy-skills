@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v1.9.0（2026-09-24）
+
+- 新增：**png-sequence-to-webp v1**（设计序列帧 → WebP 交付：单帧批量 + 动态动图 + 配色适配）——沉淀自 362 人脸/声纹弹窗动效切图交付实战。
+  - **主线**：只读侦察 → **按组跑全量基准**定编码参数 → 单帧转换（`exact=True` 保透明区 RGB + 逐像素核验）→ 合成动态 WebP → 配色适配 → 交付。
+  - **核心结论**：无损 vs 有损的胜负取决于「**有没有渐变**」，不取决于尺寸 —— 扁平/单色组无损更小且零误差（实测单色细线组无损 800.5K < q90 的 1099.7K，有损纯负收益），只有软渐变填充组才是有损的战场；**混合模式严格占优**（扁平组无损 + 渐变组 q90，体积与全有损几乎相同但扁平部分保持 0 误差）。且**必须按组全量跑基准**，抽样会被少数大体积帧带偏（实测抽样 19.7% vs 全量 35.3%）。
+  - **动图核心坑（本次实测定位）**：① Pillow `save_all=True` 走 libwebp `WebPAnimEncoder`，会**偷合并完全相同的连续帧**（9 帧→8 帧、50 帧→41 帧）并改写时长；② 其写出的 `ANMF` flags 是 `dispose=none`，libwebp 在 no-blend 下**跳过 alpha==0 的像素** → 透明区残留上一帧，误差精确满足 `got_a = 2a - a²/255`（即与自身再混合一次）。
+  - **解法：容器级 mux** —— 直接复用源文件里已编码好的 VP8L 码流塞进 `ANMF`，零重编码、解码逐字节还原；`ANMF` flags 固定 `0x01`（dispose-to-background + no-blend，按 RFC 9649 bit0=disposal / bit1=blending，实测 `0x00` 会帧帧叠加）；帧时长按累计取整分配（`round(i*1000/fps) - round((i-1)*1000/fps)`，30fps 得 `33,34,33,33,34,33,33,34,33`，9 帧精确 300ms；固定 33ms 会让 90 帧变成 2.97s）。
+  - **帧率不自证就会整批错**：`fps = mdhd.timescale / stts.delta` 从同项目 mp4 反推（30fps → 30000/1000，29.97 → 30000/**1001**）；`stts` 在 `moov>trak>mdia>minf>stbl>stts`，**不在 `mdia` 直接子级**（只在 mdia 下遍历找不到）；`mvhd` 的 timescale 通常 90000 与帧率无关。
+  - **配色适配 `--recolor`**：精确 RGB 匹配 + **alpha 原样保留**（实测 212×212×90 帧 alpha 差异 **0 像素**、alpha 取值分布逐帧一致）。坑：**"白色"未必是 `#FFFFFF`** —— 实测某素材为米白 `#FCF9F7`，同批另一组才是纯白，写错 FROM 会 0 命中静默产出未改色的文件；必须先量色值。
+  - **附脚本**：`convert_seq_to_webp.py`（批量转换 + 保结构改名 + 按组体积表 + 逐像素核验，失败即非零退出）、`mux_anim_webp.py`（容器级 mux + 结构层/解码层双重核验 + `--recolor`），均纯 Python（Pillow / numpy），脚本与 SKILL.md 同目录。
+- 文档：README 技能列表加行 / CHANGELOG v1.9.0 / AGENTS 基线行更新（下一提交补 hash）/ DEVELOPMENT 坑记录。
+
 ## v1.8.0（2026-09-09）
 
 - 新增：**superellipse-icon v1**（超椭圆图标裁剪/应用图标标准化）——沉淀自登录态切换器 app.ico 接入实战，把 WindowTinter 仓库的超椭圆图标标准固化：任意方形源图 → 超椭圆裁剪（n=4 大尺寸 / n=8 小尺寸）→ 6 分辨率 ICO（16/32/48/64/128/256, 32bpp PNG 条目）。
