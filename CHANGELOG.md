@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v1.10.0（2026-09-28）
+
+- 修订：**github-push-universal** 补齐两节新方法 + 回填此前只在本地安装位、未同步进仓库的历史内容。
+  - **新增·只改一两个文件时别 clone，直接走 Contents API**：github 通道**时通时断**（同一小时内"全通→全挂→全通"）。clone 要拉几千个对象、暴露窗口长（实测连试 10 次全败），而 Contents API 单文件改只要 2 次请求（GET 拿 sha → PUT），同一分钟里就成功。配套纪律：外层套**持久重试**（一轮失败 ≠ 此路不通，本例第 22 轮才通）、PUT 前先判"是否已改过"以免重试循环反复踩空。
+  - **新增·通道全死时用 jsDelivr 只读取回整个仓库**：`data.jsdelivr.com/v1/packages/gh/<owner>/<repo>@<ref>` 列清单（含每个文件 size）+ `fastly.jsdelivr.net/gh/...` 取内容。坑：① **镜像要逐个试** —— `cdn.`/`gcore.`/`testingcf.` 全 000，只有 **fastly** 通；② **非 ASCII 文件名返回 403**（如 `启动日历.bat`）；③ 落盘后**逐个比字节数**才算"取到真文件"；④ 必须写重试 + 长循环放 `run_in_background`（前台会被 SIGTERM 掐）。
+  - **新增·匿名无法判断仓库是"私有"还是"不存在"**：对照实验 —— 待查仓库与**随便编的名字**返回**字节完全相同**的 `401 Repository not found.`（GitHub 故意不区分）。必须用有效 token 打 `GET /repos/{owner}/{repo}`。**别把 401 当"仓库不存在"**。
+  - **回填·反模式 4 条 → 9 条**：补第 5~9 条（域名级出口矩阵判"哪一层不通"、Contents API 回退前先移走大体积 ignored 产物、**别把显示层脱敏误判成"token 到不了命令行"**、`401 Bad credentials` 是真实认证失败而非网络、直连与代理都要试且要自动重试）。
+  - **回填·4 个历史小节**：「git 通道其实可用时优先 git，别默认走 API」「Contents API 路径也会推 untracked/被 ignore 的工作区文件」「update-ref 后本地 ref 卡在旧 hash 的坑」「push_repo.py 默认 `git add -A` 会自动 commit 未跟踪辅助文件」。
+  - **根因说明**：本地安装位（`~/.workbuddy/skills/`）此前已领先仓库 4 个完整小节 + 5 条反模式却一直没同步 —— 本次按"仓库是权威源"补齐。推送前核对：本地相对仓库版是**干净超集**（实质性删除 0 行）。
+- 文档：CHANGELOG v1.10.0 / AGENTS 基线行更新（下一提交补 hash）。
+
 ## v1.9.1（2026-09-24）
 
 - 修订：**png-sequence-to-webp** 补回三组实测基准数据表（新增 `B7 实测基准数据`）——v1.9.0 三层重构时被压缩掉的案例 A/B/C 完整读数重新收入 B 组「按需查」：源 PNG / 无损 / q90 三列对照 + 案例 B 逐组拆解（收益只来自渐变那一组）+ 案例 C 四档位 PSNR。
