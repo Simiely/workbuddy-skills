@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-09-24 `d31134c875`（v1.9.1：png-sequence-to-webp 补回三组实测基准数据表 B7；v1.9.0：新增 png-sequence-to-webp 技能（设计序列帧→WebP 单帧 + 动态动图 + 配色适配））
+> 📌 **文档基线**：2026-09-28 `ccc5d1cb7c`（v1.10.0：github-push-universal 补 2 节新方法（单文件改动走 Contents API / 通道全死时用 jsDelivr 只读取回仓库） + 反模式补 5 条 + 回填 4 个历史小节；v1.9.1：png-sequence-to-webp 补回三组实测基准数据表 B7）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
