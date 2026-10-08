@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-10-08 v1.11.0（新增 network-triage-and-fix：网络分层诊断与修复全流程，含 5 个实测脚本 + 沙箱/提权/GitHub 通道坑清单；同步修订「7890 代理」结论为多通道重试）　← 前序：2026-09-28 ccc5d1cb7c（v1.10.0）
+> 📌 **文档基线**：2026-10-08 v1.11.1（v1.11.0 新增 network-triage-and-fix：网络分层诊断与修复全流程，含 5 个实测脚本 + 沙箱/提权/GitHub 通道坑清单；v1.11.1 将 github-env-fix / github-connect-diag / AGENTS 的「7890 代理」表述统一修订为「多通道重试」）　← 前序：2026-09-28 ccc5d1cb7c（v1.10.0）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -12,7 +12,7 @@
 ## 关键坑
 
 - 沙箱内 `git push` 到 github.com 慢/卡/弹窗 → 用 **github-env-fix** 先根治凭据弹窗（设全局 `credential.helper=`），再走 **GitHub Contents API** 或 git 推送（见 github-push-universal / github-release）
-- ⚠️ **墙内必须走 `127.0.0.1:7890`(Clash) 代理才能访问 github**，走代理实测**必通**。**切勿删/设空 .gitconfig 的 http.proxy=7890**——那是历史"清代理直连"的错误认知（误以为 7890 挂起），照做才真连不上。真正让 git 卡死/弹窗的是 **credential helper（helper-selector/GCM）**，不是代理。
+- ⚠️ **墙内访问 github：`127.0.0.1:7890`(Clash) 是可靠通道之一（建议保留 .gitconfig 的 http.proxy=7890），但通道时通时断**——2026-10-08 实测同一天里 7890 死过、直连成功过又失败过、代理 502 间歇。⇒ **每次先跑出口矩阵（env 隧道 / 7890 / 直连），一次失败 ≠ 此路不通，直连与代理都要试并自动重试**。真正让 git 卡死/弹窗的是 **credential helper（helper-selector/GCM）**，不是代理。
 - 沙箱内 git 需要凭据时会弹 `credentialhelperselector`（无交互挂死）→ remote URL 内嵌 token / `-c credential.helper=` / 先跑 github-env-fix 根治，token 走 env/URL 内嵌
 - 判断网络**用 Python urllib，不用 curl**（WorkBuddy 劫持 curl 致 exit 43 假失败）
 - 认证：`Authorization: Bearer <PAT>`；未认证访问 GitHub API 会限流，一律带 token
