@@ -17,6 +17,7 @@ WorkBuddy 可复用技能（Skills）集——把验证有效的 AI 工作流沉
 | **wpf-visual-tree-ai-eyes** WPF AI 眼睛 | 让 AI 直接"看"运行中的 WPF 程序：self-hosted 接入（DEBUG-only，Release 纯净）→ 读元素树 / 按 name·文本·类型定位 → screenBounds 量化坐标间距位移 → 模拟点击驱动状态，给数字当证据替代截图往返；附布局位移（行高收缩/拉伸）量化验收法 | [skills/wpf-visual-tree-ai-eyes/SKILL.md](skills/wpf-visual-tree-ai-eyes/SKILL.md) | v1 稳定 |
 | **superellipse-icon** 超椭圆图标 | 把方形源图按 WindowTinter 超椭圆标准裁成应用图标——超椭圆裁剪（n=4 大尺寸/n=8 小尺寸）+ 6 分辨率 ICO(16/32/48/64/128/256, 32bpp PNG 条目)；附零配置 `make_icon.py`（仅需 Pillow） | [skills/superellipse-icon/SKILL.md](skills/superellipse-icon/SKILL.md) | v1 稳定 |
 | **png-sequence-to-webp** 序列帧转 WebP | 设计序列帧（PNG/SVG/WebP）→ WebP 交付：**按组跑全量基准**定无损/有损（扁平·单色组无损更小且零误差，只有软渐变组才值得有损，混合模式严格占优）+ **容器级 mux 合成动态 WebP**（复用原始 VP8L 码流，避开 Pillow 偷合并帧、透明区残留上一帧两个坑）+ `--recolor` 配色替换（alpha 原样保留）；附 2 个零依赖脚本，均带双重核验 | [skills/png-sequence-to-webp/SKILL.md](skills/png-sequence-to-webp/SKILL.md) | v1 稳定 |
+| **network-triage-and-fix** 网络分层诊断与修复 | 本机网络"不稳定/卡/慢"全流程——**调研(只读分层实测)→定位(解析/建连/带宽三层归因)→建议(带证据行,等答复)→执行(先备份+每步验证+自动回滚)→同尺复验**；附 5 个零依赖脚本（bench 同尺基准 / triage 抓现场 / mirror_bench 镜像选型 / run_elevated 提权执行器 / net_backup 配置备份），含沙箱与 Windows 提权实测坑清单、GitHub 资源通道矩阵 | [skills/network-triage-and-fix/SKILL.md](skills/network-triage-and-fix/SKILL.md) | v1 稳定 |
 
 ### 已归档（见 skills/_archived/）
 
