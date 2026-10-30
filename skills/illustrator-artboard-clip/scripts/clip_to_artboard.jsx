@@ -1,4 +1,4 @@
-// clip_to_artboard.jsx — trim assets to the artboard with a CLIPPING MASK.
+﻿// clip_to_artboard.jsx — trim assets to the artboard with a CLIPPING MASK.
 //
 // Technique: do NOT crop the image data. Build a rectangle the size of the
 // artboard, put it on top of the asset inside a group and turn the group into a
@@ -19,7 +19,8 @@
 //   - doc.pageItems index 0 is the FRONTMOST item, not the last one
 //   - coordinates are y-up: artboardRect = [left, top, right, bottom]
 //
-// NOTE: ASCII-only on purpose (no UTF-8 BOM -> ExtendScript reads ANSI).
+// NOTE: content is ASCII-only; the file carries a UTF-8 BOM so ExtendScript reads
+// it as UTF-8 (without a BOM it would read ANSI and mangle non-ASCII literals).
 
 #target illustrator
 #targetengine "session"

@@ -99,7 +99,9 @@ powershell -ExecutionPolicy Bypass -File scripts\run_headless.ps1 `
 - 行为：清旧实例 → 等进程真消失 → **把脚本复制到 `%SystemDrive%\ai\jobs\`（Illustrator 所在盘）** → 以该路径 `-r` 启动 → 轮询日志到 `done` → 返回语义化退出码；
 - **为什么暂存到同盘**：实测跨盘路径（D: vs C:）会触发**模态** "File not found" 并阻塞 AI 主线程，不点掉弹窗脚本永不开始；同盘则直接跑通、零弹窗（实测 16s 跑完一次完整转换）；
 - 退出码：`0` 成功 / `2` 参数或文件不存在 / `3` 旧实例杀不掉 / `4` 脚本内部 ERROR / `5` 超时（AI 未被杀，可能还在跑）/ `6` 超时且指定了 `-KillOnTimeout`；
-- **铁律**：**超时不要杀 AI**（杀进程会腰斩脚本）；确认路径写法用反斜杠绝对路径。
+- **铁律**：**超时不要杀 AI**（杀进程会腰斩脚本）；确认路径写法用反斜杠绝对路径；
+- **启动器 `-Log` 必须与脚本内部的 `LOG` 完全一致** —— 不一致时表现为「超时且找不到日志」，
+  极易误判成脚本没跑（本次实测就踩过一次：脚本写在 `_clip.txt`，启动器盯 `_clip_test.txt`）。
 
 ### B4 API 坑位速查 `references/api-pitfalls-ai2026.md`
 **触发条件**：脚本报错时先查这里。
@@ -131,6 +133,7 @@ AI 坐标下渐变遮罩这类"故意出血"的元素也会被判为溢出，需
 - [ ] 脚本**无中文字面量**（除非用带 BOM 的 UTF-8 写）
 - [ ] 所有路径为**绝对路径**
 - [ ] 顶层 `try/catch` + **写日志到绝对路径**（能证明脚本真跑了）
+- [ ] **启动器 `-Log` 与脚本内 `LOG` 同一路径**（否则表现为“超时 + 无日志”的假故障）
 - [ ] 结尾 `app.quit()`（让偏好正常落盘）
 - [ ] `app.userInteractionLevel = DONTDISPLAYALERTS`
 - [ ] 剪切组创建后 `clipped = true` 成功（未抛 "at least two page items"）

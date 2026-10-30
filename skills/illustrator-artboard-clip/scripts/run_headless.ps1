@@ -22,9 +22,9 @@
 # Exit codes: 0 ok | 2 bad arguments/file | 3 stale instance will not die
 #             4 script reported ERROR | 5 timeout | 6 timeout + KillOnTimeout
 #
-# Keep this file ASCII-only: PowerShell 5.1 reads .ps1 as ANSI unless it has a
-# UTF-8 BOM, and non-ASCII strings can break parsing ("string is missing the
-# terminator").
+# Content is ASCII-only; this file carries a UTF-8 BOM so PowerShell 5.1 reads
+# it as UTF-8 (without a BOM it reads ANSI, and non-ASCII strings can break
+# parsing: "string is missing the terminator").
 
 param(
   [Parameter(Mandatory=$true)][string]$Jsx,
@@ -65,7 +65,9 @@ if (-not $KeepLog -and (Test-Path $Log)) { Remove-Item $Log -Force }
 $stageDir = Join-Path $env:SystemDrive "ai\jobs"
 New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
 $staged = Join-Path $stageDir ([IO.Path]::GetFileName($Jsx))
-Copy-Item $Jsx $staged -Force
+if ([IO.Path]::GetFullPath($Jsx) -ne [IO.Path]::GetFullPath($staged)) {
+  Copy-Item $Jsx $staged -Force
+}
 Write-Host "[run] staged script -> $staged"
 
 # 4) Launch (-r runs the script; the script should call app.quit() when done)

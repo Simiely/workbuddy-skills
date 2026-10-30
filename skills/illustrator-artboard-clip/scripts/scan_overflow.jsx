@@ -1,4 +1,4 @@
-// scan_overflow.jsx — find every item that overflows the artboard and is NOT already
+﻿// scan_overflow.jsx — find every item that overflows the artboard and is NOT already
 // inside a clipping group. Read-only: never modifies the document.
 //
 // Usage (always via run_headless.ps1 so the script runs from the AI drive and no
@@ -6,10 +6,11 @@
 //   powershell -ExecutionPolicy Bypass -File run_headless.ps1 `
 //       -Jsx scan_overflow.jsx -Log C:\ai\jobs\_overflow.txt -TimeoutSec 300
 //
-// NOTE: keep this file ASCII-only. ExtendScript reads .jsx as system ANSI when
-// there is no UTF-8 BOM, so non-ASCII literals get mangled (a Chinese layer
-// name literal made getByName() return undefined). Layer names are READ here,
-// never COMPARED against a literal.
+// NOTE: the CONTENT of this file is ASCII-only (the file itself carries a UTF-8
+// BOM, which is good: ExtendScript then reads it as UTF-8). Why ASCII-only?
+// Without a BOM ExtendScript reads .jsx as system ANSI and non-ASCII literals
+// get mangled - a Chinese layer-name literal made getByName() return
+// undefined. Layer names are READ here, never COMPARED against a literal.
 
 #target illustrator
 #targetengine "session"
