@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## v1.12.0（2026-10-30）
+
+- 新增：**illustrator-artboard-clip v1**（画板建框收素材）——
+  沉淀自一次完整实战（Figma 扁平 SVG 还原出的工程文件，背景大图四边溢出画板 2~3.7px，
+  用户要求"溢出画板的部分都用画板建框裁切"）。
+  - **A 主线六步**：只读侦察溢出（先看清单，区分"该剪/该留"）→ 备份原文件（带时间戳）→
+    建画板矩形剪切组 → **画板内逐像素零差异验收** → 复扫 + 写回 → 沉淀。
+  - **核心结论**：① **要收边就别裁图**——用画板矩形做剪切组，素材像素/位置/尺寸全不动，随时可撤；
+    ② **脚本必须与 Illustrator 同盘**，否则弹模态 "File not found" 并阻塞主线程（不点掉弹窗脚本永不开始，
+    实测 240s 零产出；同盘则 16s 跑完整转换且零弹窗）；③ **剪切组必须 ≥2 个对象、裁切框在组内最上层**，
+    否则 `clipped=true` 直接报错；④ **别用 resize 改框当"裁切"**——那是缩放内容而非裁边，
+    且本版本 `TransformAbout` 枚举不存在。
+  - **附 3 个零依赖脚本**：`scan_overflow.jsx`（扫描所有未 clipped 的溢出元素，跳过已剪切组）、
+    `clip_to_artboard.jsx`（建框剪切 + 保持原层序 + 输出层序快照）、
+    `run_headless.ps1`（清场 → 暂存同盘 → 启动 → 轮询日志 → 语义化退出码；**超时默认不杀 AI**）。
+  - **references/api-pitfalls-ai2026.md**：11 条实测 API 坑位——`TransformAbout` 缺失、
+    `imageCapture` 只收两参（第三方参数报 "Illegal argument"）、坐标 y 向上、高度按 `top−bottom` 算、
+    `pageItems` 索引 0 是最前、剪切组三条硬规则、**中文 `.jsx` 字面量被 ANSI 破坏**、
+    `visibleBounds` 比 `bounds` 稳、跨盘路径弹模态阻塞、Startup Scripts 在 build 30 不触发、
+    Windows 路径与中文目录的混合环境坑、判据只看日志别信弹窗。
+- 文档：README 技能列表加行 / AGENTS 基线行更新 + 关键坑补 Illustrator 无头脚本一条 /
+  DEVELOPMENT 补坑记录。
+
 ## v1.11.1（2026-10-08）
 
 - 修订（收尾 v1.11.0 遗留冲突）：把 **github-env-fix / github-connect-diag / AGENTS** 里「切勿删 7890 代理 / 走代理必通」的绝对化表述，统一改为「**7890 是可靠通道之一（建议保留）；github 通道时通时断，每次先跑出口矩阵（env 隧道 / 7890 / 直连），一次失败 ≠ 此路不通，直连与代理都要试并自动重试**」。

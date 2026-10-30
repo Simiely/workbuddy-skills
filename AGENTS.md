@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-10-08 v1.11.1（v1.11.0 新增 network-triage-and-fix：网络分层诊断与修复全流程，含 5 个实测脚本 + 沙箱/提权/GitHub 通道坑清单；v1.11.1 将 github-env-fix / github-connect-diag / AGENTS 的「7890 代理」表述统一修订为「多通道重试」）　← 前序：2026-09-28 ccc5d1cb7c（v1.10.0）
+> 📌 **文档基线**：2026-10-30 v1.12.0（v1.12.0 新增 illustrator-artboard-clip：用 Illustrator 脚本按画板矩形剪切蒙版收素材，含溢出扫描 / 画板收边 / 零弹窗无头启动三脚本 + AI 2026 实测 API 坑位清单）　← 前序：2026-10-08 v1.11.1
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -18,6 +18,7 @@
 - 认证：`Authorization: Bearer <PAT>`；未认证访问 GitHub API 会限流，一律带 token
 - token 只用于 API 调用，**绝不写进任何被提交的文件**
 - SkillManage 工具可能不可用 → 直接编辑 SKILL.md 文件即可，无需经过工具
+- **Illustrator 无头脚本**：脚本必须与 Illustrator **同盘**（跨盘会弹模态 "File not found" 并阻塞执行，不点掉弹窗脚本永不开始）→ 用 illustrator-artboard-clip 的 `run_headless.ps1`（自动暂存到 `%SystemDrive%`）；**剪切组需 ≥2 个对象且裁切框在组内最上层**；`.jsx`/`.ps1` 一律纯 ASCII（ExtendScript/PS 5.1 按 ANSI 读，中文字面量会被破坏）→ 详见该技能 `references/api-pitfalls-ai2026.md`
 
 ## 约定
 
