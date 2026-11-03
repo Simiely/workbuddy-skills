@@ -112,6 +112,8 @@ powershell -ExecutionPolicy Bypass -File scripts\run_headless.ps1 `
 坐标 **y 向上** → 高度要按 `top − bottom` 算，写反得负数；
 `pageItems` 索引 0 = 最前；
 剪切组需 ≥2 对象、裁切框在最上层；
+**SVG 导入时命名组带 `clip-path` → 组名变空**（画布收边别放 SVG，放 JSX 导入后做）；
+**无头环境 `executeMenuCommand("Clipping Mask")` 必报 `1112237433 ('BKey')`** → 只用 `GroupItem.clipped`；
 中文脚本字面量被 ANSI 破坏 → 名称只读不匹配；
 `visibleBounds` 相对 `bounds` 更稳（部分对象 `bounds` 取不到）；
 AI 坐标下渐变遮罩这类"故意出血"的元素也会被判为溢出，需人工判断。

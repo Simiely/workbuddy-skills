@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v1.12.1（2026-11-02）
+
+- illustrator-artboard-clip：坑位速查 **12 条 → 14 条**（2026-11-02 SVG→AI 分层转换实战补录，
+  两份真实设计稿回归验证）：
+  - **坑13 · SVG 导入：命名组带 `clip-path` 会丢失组名**——顶层 `<g id="...">` 加画布裁剪后
+    AI 导入 `GroupItem.name` 全部变空，按名配对全挂（moved:0，命名层被当空壳删光）；
+    对照实验证实去掉 `clip-path` 即恢复。结论：收边别放 SVG，放 JSX 导入后做
+    （design-tips `convert-to-ai.jsx` 已落地 `CANVAS_CLIP`）。
+  - **坑14 · 无头环境 `executeMenuCommand("Clipping Mask")` 必报 `1112237433 ('BKey')`**——
+    5/5 全失败；剪切蒙版只用 `GroupItem.clipped`（本技能 B2 方案再次验证）。
+- SKILL.md B4 速查同步两行；技能脚本无改动（既有做法本就正确，本次补的是"为什么不用
+  菜单命令 / SVG clip-path"的实证）。
+
 ## v1.12.0（2026-10-30）
 
 - 新增：**illustrator-artboard-clip v1**（画板建框收素材）——

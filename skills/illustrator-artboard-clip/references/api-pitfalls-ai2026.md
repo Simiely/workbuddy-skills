@@ -1,7 +1,8 @@
 # Illustrator 2026 脚本 API 坑位（实测）
 
 > 环境：Adobe Illustrator 2026（build 30）、Windows 11、ExtendScript（`#target illustrator`）。
-> 记录时间：2026-10-30。以下每条都是**实测撞到并验证过**的，不是文档推测。
+> 记录时间：2026-10-30（第 1–12 条）/ 2026-11-02 补录（第 13–14 条，来自 SVG→AI 分层转换实战）。
+> 以下每条都是**实测撞到并验证过**的，不是文档推测。
 > 换机/换版本后需重新采一遍。
 
 ## 1. `TransformAbout` 枚举不存在 → `resize()` 不能常规调用
@@ -87,3 +88,20 @@
 - **判据只看日志**：日志文件是否生成、是否出现 `done` / `ERROR`；弹窗一律不管。
 - **超时不要杀 AI**：脚本可能在做大文件操作（打开 7.6 MB SVG、导出 PNG），杀掉进程会把脚本腰斩，日志永远到不了 `done`。
 - 退出码语义化（0 成功 / 2 参数或文件不存在 / 3 旧实例杀不掉 / 4 脚本 ERROR / 5 超时 / 6 超时且强制杀）。
+
+## 13. SVG 导入：命名组带 `clip-path` 会丢失组名（2026-11-02 实测）
+
+- 场景：SVG→AI 分层流水线里，给顶层 `<g id="背景" clip-path="url(#...)">` 加画布裁剪，
+  AI 导入后这 5 个组的 `GroupItem.name` **全部变空**（`''`）→ 按名配对图层的脚本全挂：
+  实测 `moved: 0`，5 个命名层被当空壳删光，产物只剩 1 层。
+- 对照实验：去掉 `clip-path`（只留 `id`）后同样内容导入 → 组名全部正常、配对恢复。
+- 结论：**画布收边不要放 SVG 里做**。SVG 侧顶层组只保留 `id`；收边在 JSX 导入后做
+  （design-tips 的 `convert-to-ai.jsx` `CANVAS_CLIP`，与本技能 B2 同一套 `GroupItem.clipped` 方案）。
+- 另注：源稿自带的画布裁剪（如 Figma 导出的 `clip0`）会被分层构建器丢弃，不能指望它兜底。
+
+## 14. 无头环境 `executeMenuCommand("Clipping Mask")` 必报错（2026-11-02 实测）
+
+- 现象：无头 `-r` 运行里，对选中对象执行 `app.executeMenuCommand("Clipping Mask")`，
+  5/5 层全部抛 `an Illustrator error occurred: 1112237433 ('BKey')`，一个都没成功。
+- 结论：**做剪切蒙版只用 `GroupItem.clipped = true`**（本技能 B2 的既有做法，再次验证），
+  菜单命令通道在无头环境不可依赖；脚本化建剪切组的三条硬规则见第 4 条。
