@@ -102,6 +102,18 @@ except urllib.error.HTTPError as e:
    → 别一次失败就判死；写成 `for i in $(seq 1 8)` 重试，并用
    `ls-remote` 的远端 HEAD 是否等于本地 HEAD 作**成功判据**（不要只看 push 的 stdout 尾巴）。
 
+   ⚠️ **修正（2026-09-29 实测，与上面第 2 条相反）：出口会漂，别把"7890 必通"当常量。**
+   当天 `127.0.0.1:7890` **根本不在监听**（一连就 `WinError 10061 目标计算机积极拒绝`，
+   连 `dangerouslyDisableSandbox` 下也一样），而 WorkBuddy 注入的 env 隧道端口
+   **从 `51141` 漂成了 `48623`**、走它连 GitHub 报 `SSL UNEXPECTED_EOF` / `502 Bad Gateway`；
+   **直连（`ProxyHandler({})` / `git -c http.proxy= -c https.proxy=`）反而通** ——
+   33 个 commit 一次推成，`api.github.com` 只是偶发抖动、重试即过。
+   ⇒ **每次先跑出口矩阵**：`env | 7890 | none` 三个角色 ×（`api.github.com` + `github.com`），
+   直连用 `urllib.request.ProxyHandler({})` 表达。别凭记忆选出口，也别因一次失败就判"网络全断"。
+   可复用的三角色探测脚本见本 skill 的 `_probe_net.py` 思路（本会话工作区也留了一份）。
+   `git fetch` **匿名做不了**（公开仓库也报 `could not read Username`）→ 远端引用对齐全走
+   `git update-ref refs/remotes/origin/<br> <sha>`（sha 用 `GET /repos/{o}/{r}/commits/<br>` 拿）。
+
 ## ⚠️ 只改一两个文件时：**别 clone**，直接走 Contents API（2026-09-28 实测）
 
 github 通道**时通时断**（同一小时内能"全通 → 全挂 → 全通"）。此时：
@@ -143,6 +155,59 @@ GET https://fastly.jsdelivr.net/gh/<owner>/<repo>@<ref>/<path>
 - **必须写重试**：沙箱出口会偶发 `502 Bad Gateway`；且**长循环放 `run_in_background`** ——
   前台跑网络长循环会被 SIGTERM 掐掉（同一脚本后台跑就正常）。
 
+## 下载 **Release 附件**（exe/zip 二进制）：走 ghproxy 镜像，别碰 release-assets（2026-09-29 实测）
+
+**场景**：要把 Releases 里的**二进制附件**取回本地（jsDelivr 那条路只覆盖仓库源码文件，**不覆盖 release 附件**）。
+
+**死路（三条都实测过，别浪费时间）**：
+- `GET api.github.com/repos/{o}/{r}/releases/assets/{id}` + `Accept: application/octet-stream`
+  → **302 跳到 `release-assets.githubusercontent.com`**，该域名在沙箱**不通**
+  （直连 `timed out` / 走 env 隧道 `502 Bad Gateway`）。
+- **把签名 URL 主机名换成通的 `objects.githubusercontent.com` → `400 Bad Request`**：
+  Azure SAS 校验主机，签名**不能跨主机复用**（这条捷径是假的，别试）。
+- `github.com/{o}/{r}/releases/download/...` 本体 → github.com 不通。
+
+**活路**：GitHub 加速镜像前缀（服务端代下，不经过 release-assets）——**直连出口**（`ProxyHandler({})`）最稳：
+
+| 前缀 | 实测 |
+|---|---|
+| `https://ghproxy.net/` + TARGET | ✅ `206` + `MZ` |
+| `https://gh-proxy.com/` + TARGET | ✅ `206` + `MZ` |
+| `https://ghfast.top/` | ❌ TLS handshake |
+| `https://gh.llkk.cc/` / `ghps.cc` | ❌ timeout |
+| `github.moeyy.xyz` / `gh.xxooo.cf` / `hub.gitmirror.com` | ❌ DNS 解析失败 |
+
+```python
+TARGET = "https://github.com/{o}/{r}/releases/download/{tag}/{asset}"
+# 直连：urllib.request.build_opener(ProxyHandler({}), HTTPSHandler(context=CTX))
+# 落盘判据：len(data) == assets[0]["size"]（来自 GET /releases）且 data[:2] == b"MZ"
+# 外层套 8 轮重试（镜像会偶发失败）；13.7MB 实测 44s
+```
+
+**"下到了" ≠ "下对了" —— 两层校验都要做**：
+1. **大小 + 魔数**：字节数等于 API 报的 `size`，头两字节 `MZ`。
+2. **结构完整性**：解析 PE 头（`e_lfanew` → `PE\0\0`、machine `0x8664`、optional magic `0x20b`、
+   subsystem `2`=GUI）和**尾部 PyInstaller cookie**（`MEI\014\013\012\013\016`；
+   `len(file) - lengthofPackage` 应正好等于归档起点，且 cookie 末尾贴齐文件尾 ⇒ 没被截断）。
+   cookie 里的 `pylibname` 还能反查打包用的 Python 版本（如 `python314.dll`）。
+
+**无副作用冒烟测试（重要）**：GUI/硬件类程序**别拿真参数试跑** —— 例如亮度工具的
+`--set 0 50` 会**真的把显示器调暗**。用一个必然抛异常的参数走 CLI 分支即可：
+`app.exe --set 0 abc` → 退出码 `1` + `invalid literal for int() with base 10: 'abc'`
+⇒ 同时证明"解包成功 / Python 运行时起来 / 顶层 import（tkinter 等）全通"，**且没有触碰硬件**。
+
+## ⚠️ 不要用 URL 内嵌 token 去 `git clone`（2026-09-29 实测）
+
+`git clone https://user:<PAT>@github.com/...` 会把 **PAT 明文写进 `.git/config` 的 remote URL**，
+而 clone 出来的仓库通常是**要留着、甚至要给别人看/继续用**的。clone 完**立刻**：
+
+```bash
+git -C <repo> remote set-url origin https://github.com/<owner>/<repo>.git
+grep -rl "ghp_" .        # 必须为空
+```
+
+同理：临时下载脚本里带 TOKEN → **跑完立刻 `rm`**，并在工作区 `grep -rl "ghp_" .` 复查。
+
 ### 附带结论：匿名**无法**判断某个仓库是「私有」还是「不存在」（2026-09-28 对照实验）
 
 想确认 `<owner>/<repo>` 到底存在与否时，别用匿名请求下结论 —— GitHub 故意不区分：
@@ -159,6 +224,19 @@ GET https://fastly.jsdelivr.net/gh/<owner>/<repo>@<ref>/<path>
 
 ## 工具
 脚本：`push_repo.py`（同目录，Python3，零第三方依赖）。
+
+### 2026-11-11 修掉的三处（脚本已内置，不必再手工绕）
+
+| 症状 | 根因 | 现在的行为 |
+|---|---|---|
+| Contents API 抛 `UnicodeEncodeError: 'ascii' codec can't encode ...`，**且已写入前几个文件** | 文件路径直接拼进 URL，中文 / 空格 / `#` 未编码 | `url_path()` 统一 `quote(path, safe='/')`；分支名用 `safe=''`（`feature/x` 整体编码） |
+| `git push` 报 `Invalid username or token`（同一 token 走 API 完全正常、scopes 有 `repo`） | `https://x-access-token:TOKEN@github.com/...` 这种 URL 内嵌凭据被拒 | 改 `-c http.extraHeader=Authorization: Basic base64(x-access-token:TOKEN)` |
+| `github.com` 直连 21s 超时，而 `api.github.com` 直连正常 | 同一网络里两个域名出口不一致 | git 通道**直连失败自动重试 `127.0.0.1:7890`**，成功会打印 `改走 proxy-7890` |
+
+另外：Contents API **单项失败不再中途 `die`**——跑完再按「已成功 N 项 / 失败 M 项」汇报，
+避免"崩在中途、远端半套状态"没人知道（这正是 2026-11-11 那次踩的坑）。
+
+实测：`Simiely/workbuddy-skills` 开临时分支 → `PUT 测试目录/中文 文件.md` → `201`，读回内容一致，分支已删。
 
 ### token 来源（优先级）
 **推荐使用 `GH_TOKEN` 环境变量**（推荐做法）：
@@ -198,14 +276,16 @@ cd /path/to/repo
 export GH_TOKEN='ghp_...'
 python "C:/Users/<USER>/.workbuddy/skills/github-push-universal/push_repo.py" . --message "..."
 ```
-脚本内部已自动：清掉 WorkBuddy 注入的 `51141` env 代理（git 回落读 .gitconfig 的 **7890** 走代理）、`-c credential.helper=`（禁弹窗）、`-c http.sslBackend=openssl`、`-c http.version=HTTP/1.1`、禁交互。
+脚本内部已自动：清掉 WorkBuddy 注入的 `51141` env 代理、`-c credential.helper=`（禁弹窗）、
+`-c http.sslBackend=openssl`、`-c http.version=HTTP/1.1`、Basic 认证头、禁交互；
+git 通道**直连失败会再试一次本机 7890**（不再依赖 `.gitconfig` 里预置代理）。
 > 在 WorkBuddy 桌面沙箱里运行涉及网络的命令时，若被沙箱策略拦截，可对 Bash 命令加 `dangerouslyDisableSandbox: true`（网络操作）。
 
 ## 推送语义
 1. `git add -A` + `git commit`（把工作区改动固化成本地 commit）。
    - 若仓库无 user.name/email，commit 失败 → 警告并继续（API 路径仍可用）。
 2. 本地 HEAD == 远端 HEAD → 无需推送，直接返回。
-3. 尝试 `git push HEAD:<branch>`（走 7890 代理，90s 超时）。
+3. 尝试 `git push HEAD:<branch>`：**Basic 认证头** + 直连，失败再走 7890（120s 超时）。
 4. git 失败 → 回退 **Contents API**：以「本地 HEAD 树 vs 远端分支树」做差集，幂等对齐——
    - 本地有、远端无/不同 → PUT（base64 content）
    - 远端有、本地无 → DELETE
@@ -223,12 +303,15 @@ python "C:/Users/<USER>/.workbuddy/skills/github-push-universal/push_repo.py" . 
 `could not read Username for 'https://github.com'`）：
 
 ```bash
-# 1) 先探活 + 取远端完整 SHA
-git -c http.proxy= -c https.proxy= ls-remote origin main
+# 0) Basic 认证头（2026-11-11 起首选；URL 内嵌 token 在本机被拒，见上面「修掉的三处」）
+AUTH="Authorization: Basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+# 1) 先探活 + 取远端完整 SHA（直连不通就把 -c http.proxy= 换成 127.0.0.1:7890）
+git -c http.proxy= -c https.proxy= -c credential.helper= -c "http.extraHeader=$AUTH" ls-remote origin main
 # 2) force-with-lease 覆盖（本地链替换 API 生成的逐文件小 commit 链）
 git -c http.proxy= -c https.proxy= -c http.sslVerify=false -c credential.helper= \
+    -c "http.extraHeader=$AUTH" \
     push --force-with-lease=refs/heads/main:<完整40位SHA> \
-    "https://x-access-token:${GH_TOKEN}@github.com/<owner>/<repo>.git" main
+    "https://github.com/<owner>/<repo>.git" main
 ```
 - ⚠️ `--force-with-lease=main:fc09913`（短 SHA）会报 `cannot parse expected object name`
   —— **必须完整 40 位**。
@@ -283,6 +366,34 @@ v1.1.2 旧副本，已加进 .gitignore）一并 PUT 到了远端。
 **绕过**：
 - 先在 `.gitignore` 加 `clipboard-exe/Assets/app_sizes.png`（或类似辅助文件模式），再 push。
 - 或 `git add <path1> <path2>...`（手动精确），再 `push_repo.py ... --git-only`（让脚本只 push 不 commit）。
+
+## 新建仓库 + 首推（2026-09-28 实测，本 skill 原来缺这一步）
+
+`push_repo.py` 只推**已存在**的仓库；要**同时建仓**，走这段最小脚本（已实测一次通过，curl 全程不通、只有 Python+7890 能通）：
+
+```python
+# 关键三点：显式 ProxyHandler + 不校验证书 + 每次调用重试（通道时通时断）
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+op = urllib.request.build_opener(urllib.request.ProxyHandler({'https': 'http://127.0.0.1:7890'}),
+                                 urllib.request.HTTPSHandler(context=ctx))
+H  = {'Authorization': 'token ' + TOKEN, 'Accept': 'application/vnd.github+json', 'User-Agent': 'wb'}
+# 1) 验 token：GET /user          -> 401 换 token；SSL EOF / URLError -> 网络抖动，重试
+# 2) 建仓库：POST /user/repos     -> body {"name":..., "private":false, "description":...}
+#            422 = 已存在，继续；403 且含 "rate limit" -> sleep 20s 重试
+# 3) 首推  ：git -c credential.helper= -c "http.extraHeader=Authorization: Basic <b64(x-access-token:TOKEN)>" \
+#            push https://github.com/{owner}/{repo}.git main:main
+#            （别用 URL 内嵌 token，本机实测会被拒）
+```
+
+**新增的两条判读（都踩过）**：
+- **匿名 API 会被代理共享 IP 限流**：`GET /repos/<o>/<r>` 返回 `403 rate limit exceeded`，
+  这是**限流不是网络故障**，别据此判"网络不通"。→ 带上 token 再测（token 走账号 5000/小时额度）。
+- **别拿 `git ls-remote <新仓库>` 判断"仓库不存在"**：不存在/私有时会报
+  `fatal: could not read Username for 'https://github.com': terminal prompts disabled`
+  （与"凭证缺失"同形），只有带 token 打 `GET /repos/<o>/<r>` 才能区分。**新仓库就直接建，别先探测。**
+- 建完顺手 `git fetch origin` + `git branch --set-upstream-to=origin/main main`，
+  并用 **`git ls-remote origin` 的 SHA == 本地 HEAD** 作为成功判据（2026-09-28 实测 `49cac7b` 两端一致）。
+- **临时脚本里会有 token 明文 → 跑完立刻 `rm`**；`.git/config` 里确认 `grep -c ghp_` = 0（remote URL 不带 token）。
 
 ## 安全
 - token 只经内存/环境变量传递，**不写进任何文件、不进仓库、不打日志**。

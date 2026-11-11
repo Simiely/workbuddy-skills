@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## v1.13.0（2026-11-11）
+
+- github-push-universal：**修三处实打实的推送故障**（都来自一次真实推送 design-tips 的实战）：
+  - **`url_path()`：路径/分支名统一 URL 编码**。原来把仓库路径直接拼进 `contents/{path}`，
+    遇到中文文件名（`docs/illustrator/svg还原分层AI.md`）会在构造请求时抛
+    `UnicodeEncodeError: 'ascii' codec can't encode ...`——**而且此时已经 PUT 了前几个文件，
+    远端留下半套状态**。现在文件路径 `quote(path, safe='/')`、分支名 `safe=''`（`feature/x` 整体编码）。
+  - **git 通道改用 Basic 认证头**：`https://x-access-token:TOKEN@github.com/...` 这种 URL 内嵌凭据
+    在本机实测被拒（`Invalid username or token`，同一 token 走 API 与 scopes 均正常），
+    改为 `-c http.extraHeader=Authorization: Basic base64(x-access-token:TOKEN)`，token 也不再出现在 URL 里。
+  - **git 通道直连失败自动重试 127.0.0.1:7890**：实测 `github.com` 直连 21s 超时、`api.github.com`
+    直连正常——同一网络两个域名出口不一致，不能一次失败就判死。成功时日志会打印 `改走 proxy-7890`。
+- **Contents API 单项失败不再中途 `die`**：跑完全部计划项，末尾按「已成功 N / 失败 M + 失败明细」汇报，
+  避免"崩在中途、远端半套状态"没人知道。
+- 实测：在 `Simiely/workbuddy-skills` 上开临时分支 → `PUT 测试目录/中文 文件.md` → `201`，
+  读回内容一致，临时分支已删（修复前此路径必崩）。
+
 ## v1.12.1（2026-11-02）
 
 - illustrator-artboard-clip：坑位速查 **12 条 → 14 条**（2026-11-02 SVG→AI 分层转换实战补录，
