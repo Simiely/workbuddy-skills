@@ -35,8 +35,19 @@ $repo = Split-Path -Parent $PSScriptRoot
 $lockPath = [System.IO.Path]::Combine($repo, 'schema', 'kit.lock.json')
 
 function Get-Sha256([string]$Path) {
-    $h = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
-    return 'sha256:' + $h
+    # Hash text content with CRLF normalised to LF, so a Windows checkout and a
+    # Linux CI checkout produce the same lock value.
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $ms = New-Object System.IO.MemoryStream
+    for ($i = 0; $i -lt $bytes.Length; $i++) {
+        if ($bytes[$i] -eq 13 -and ($i + 1) -lt $bytes.Length -and $bytes[$i + 1] -eq 10) { continue }
+        $ms.WriteByte($bytes[$i])
+    }
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $hash = $sha.ComputeHash($ms.ToArray())
+    $ms.Dispose()
+    $sha.Dispose()
+    return 'sha256:' + ([BitConverter]::ToString($hash).Replace('-', '').ToLower())
 }
 
 function Read-Json([string]$Path) {
