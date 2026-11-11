@@ -8,7 +8,7 @@ status: active
 owner: "@simiely"
 topics: [governance]
 source_type: doc
-source: scripts/check_repo.py
+source: tools/repo-kit/check_repo.py
 last_reviewed: 2026-11-11
 related: []
 ---
@@ -60,8 +60,8 @@ related: []
 
 ```bash
 python -m pip install -r requirements.txt
-python scripts/check_repo.py --root .
-python scripts/generate.py --root . --check
+python tools/repo-kit/check_repo.py --root .
+python tools/repo-kit/generate.py --root . --check
 ```
 
 预期：根文档 + 治理页 + SKILL.md 链接全绿；2 个已知目录链接只作为 WARN。

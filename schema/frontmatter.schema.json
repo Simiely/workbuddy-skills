@@ -34,10 +34,10 @@
       "enum": ["tutorial", "how-to", "reference", "explanation"]
     },
     "kind": {
-      "enum": ["standard", "decision", "index", "note", "glossary", "report"]
+      "enum": ["standard", "decision", "index", "note", "glossary", "report", "pitfall"]
     },
     "status": {
-      "enum": ["draft", "active", "superseded", "archived"]
+      "enum": ["draft", "active", "resolved", "superseded", "archived"]
     },
     "owner": {
       "type": "string",
@@ -57,6 +57,43 @@
     "defines": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "symptom": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "cause": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "detect": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "avoid": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "recover": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "applies_to": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9.-]*$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "severity": {
+      "enum": ["low", "medium", "high", "critical"]
     },
     "source_type": {
       "enum": ["code", "schema", "url", "doc"]
@@ -126,6 +163,24 @@
       },
       "then": {
         "required": ["superseded_by"]
+      }
+    },
+    {
+      "if": {
+        "required": ["kind"],
+        "properties": { "kind": { "const": "pitfall" } }
+      },
+      "then": {
+        "required": [
+          "summary",
+          "symptom",
+          "cause",
+          "detect",
+          "avoid",
+          "recover",
+          "applies_to",
+          "severity"
+        ]
       }
     }
   ]

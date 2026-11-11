@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""repo-kit v2.0 生成器。
+"""repo-kit v2.3 生成器。
 
 生成而不是手写：
 - AGENTS.md：AI/人的唯一入口，保持薄
 - llms.txt：机器消费入口
 - docs/_generated/index.md：按 type/kind 的导航
 - docs/_generated/backlinks.md：反向链接（不写回源文件）
+- docs/_generated/pitfalls.md：kind=pitfall 的失败模式索引
 
 用法：
     python scripts/generate.py --root . --write
@@ -69,7 +70,7 @@ def count_by(pages: dict[str, dict], key: str) -> dict[str, int]:
     return dict(sorted(out.items()))
 
 
-def build_agents(pages: dict[str, dict], tax: dict, root: Path) -> str:
+def build_agents(pages: dict[str, dict], tax: dict, root: Path, tool_rel: str = "scripts") -> str:
     total = len(pages)
     critical = sum(1 for p in pages.values() if p["fm"].get("tier") == "critical")
     types = count_by(pages, "type")
@@ -82,17 +83,18 @@ def build_agents(pages: dict[str, dict], tax: dict, root: Path) -> str:
             .replace("{{CRITICAL}}", str(critical))
             .replace("{{TYPES}}", type_line)
             .replace("{{VERSION}}", str(tax.get("version", "?")))
+            .replace("{{TOOL}}", tool_rel)
         )
     return f"""# AGENTS.md — 仓库唯一入口
 
-> 生成文件，勿手改。改规则请改 `schema/` 或 `scripts/generate.py`，再运行 `python scripts/generate.py --root . --write`。
+> 生成文件，勿手改。改规则请改 `schema/` 或 `{tool_rel}/generate.py`，再运行 `python {tool_rel}/generate.py --root . --write`。
 
 这是给 AI 与人的**唯一入口**。完整用法见 [docs/usage.md](docs/usage.md)，概念定义见 [docs/concepts/ssot.md](docs/concepts/ssot.md)，决策见 [docs/decisions/index.md](docs/decisions/index.md)。`CLAUDE.md`、`CURSOR.md` 等只允许一行指向本文件。
 
 ## 非协商（只放最关键的 6 条）
 1. 改真源（源码 / schema / 原始材料）时，**同一个 PR** 带上所有引用它的文档。
 2. 同一概念、命令、清单只允许有一个权威位置；别处链接，不复制。
-3. 禁止写回 backlinks；反向链接由 `scripts/generate.py` 生成。
+3. 禁止写回 backlinks；反向链接由 `{tool_rel}/generate.py` 生成。
 4. 禁止手写 `updated`；新鲜度只用 `last_reviewed` + `review_days`。
 5. 禁止自造 `type/kind/status/rel/topic` 词表外的值；禁止新增嵌套 frontmatter。
 6. 未经用户确认不装软件、不付费、不对外发送、不改生产库。
@@ -102,8 +104,8 @@ def build_agents(pages: dict[str, dict], tax: dict, root: Path) -> str:
 
 ## 验收
 ```bash
-python scripts/check_repo.py --root .
-python scripts/generate.py --root . --check
+python {tool_rel}/check_repo.py --root .
+python {tool_rel}/generate.py --root . --check
 ```
 验收信号：`REPO CHECK: PASS`（ERROR=0）。检查器验证不了「这句话是不是真的」；改公开标识符 / schema / onboarding 的 PR，需要人把文档与代码路径并排读一遍。
 
@@ -139,7 +141,7 @@ def build_llms(pages: dict[str, dict], tax: dict, root: Path) -> str:
     for typ in ("tutorial", "how-to", "reference", "explanation"):
         group = [
             p for p in pages.values()
-            if p["fm"].get("type") == typ and p["fm"].get("kind") != "report"
+            if p["fm"].get("type") == typ and p["fm"].get("kind") not in ("report", "pitfall")
         ]
         if not group:
             continue
@@ -154,6 +156,12 @@ def build_llms(pages: dict[str, dict], tax: dict, root: Path) -> str:
         for page in sorted(reports, key=lambda x: x["fm"].get("id", "")):
             lines.append(f"- [{page['title']}](./{page['rel']}) — {page['fm'].get('summary', '')}".rstrip(" —"))
         lines.append("")
+    pitfalls = [p for p in pages.values() if p["fm"].get("kind") == "pitfall"]
+    if pitfalls:
+        lines += ["## Pitfalls", ""]
+        for page in sorted(pitfalls, key=lambda x: (str(x["fm"].get("severity", "")), str(x["fm"].get("id", "")))):
+            lines.append(f"- [{page['title']}](./{page['rel']}) — {page['fm'].get('summary', '')}".rstrip(" —"))
+        lines.append("")
     examples = [pages[rel] for rel in sorted(pages) if rel.startswith("examples/")]
     if examples:
         lines += ["## Examples", ""]
@@ -163,7 +171,7 @@ def build_llms(pages: dict[str, dict], tax: dict, root: Path) -> str:
     return "\n".join(lines)
 
 
-def build_index(pages: dict[str, dict]) -> str:
+def build_index(pages: dict[str, dict], tool_rel: str = "scripts") -> str:
     lines = [
         "---",
         "id: docs.generated.index",
@@ -181,7 +189,7 @@ def build_index(pages: dict[str, dict]) -> str:
         "",
         "# 生成索引",
         "",
-        "> 生成文件，勿手改。运行 `python scripts/generate.py --root . --write` 重建。",
+        f"> 生成文件，勿手改。运行 `python {tool_rel}/generate.py --root . --write` 重建。",
         "",
         "## 按 type",
         "",
@@ -189,7 +197,7 @@ def build_index(pages: dict[str, dict]) -> str:
     for typ in ("tutorial", "how-to", "reference", "explanation"):
         group = [
             p for p in pages.values()
-            if p["fm"].get("type") == typ and p["fm"].get("kind") != "report"
+            if p["fm"].get("type") == typ and p["fm"].get("kind") not in ("report", "pitfall")
         ]
         if not group:
             continue
@@ -223,6 +231,23 @@ def build_index(pages: dict[str, dict]) -> str:
                 f"{fm.get('owner', '')} | {fm.get('tier', 'normal')} | `{source}` |"
             )
         lines.append("")
+    pitfalls = [p for p in pages.values() if p["fm"].get("kind") == "pitfall"]
+    if pitfalls:
+        lines += [
+            "## Pitfalls",
+            "",
+            "| 坑 | severity | 症状 | applies_to | status |",
+            "|---|---|---|---|---|",
+        ]
+        for page in sorted(pitfalls, key=lambda x: (str(x["fm"].get("severity", "")), str(x["fm"].get("id", "")))):
+            fm = page["fm"]
+            link = rel_link("docs/_generated/index.md", page["rel"])
+            applies = ", ".join(f"`{x}`" for x in (fm.get("applies_to") or []))
+            symptom = str(fm.get("symptom", "")).replace("|", "\\|")
+            lines.append(
+                f"| [{page['title']}]({link}) | {fm.get('severity', '')} | {symptom} | {applies} | {fm.get('status', '')} |"
+            )
+        lines.append("")
     lines += [
         "## 全部页面",
         "",
@@ -240,6 +265,86 @@ def build_index(pages: dict[str, dict]) -> str:
     return "\n".join(lines)
 
 
+def build_pitfall_index(pages: dict[str, dict], tool_rel: str = "scripts") -> str:
+    severity_order = {v: i for i, v in enumerate(("critical", "high", "medium", "low"))}
+    pitfalls = [p for p in pages.values() if p["fm"].get("kind") == "pitfall"]
+    active = [p for p in pitfalls if p["fm"].get("status") != "resolved"]
+    resolved = [p for p in pitfalls if p["fm"].get("status") == "resolved"]
+
+    def sort_key(page: dict) -> tuple[int, str]:
+        return (severity_order.get(str(page["fm"].get("severity", "")), 99), str(page["fm"].get("id", "")))
+
+    def cell(value) -> str:
+        return str(value).replace("|", "\\|").replace("\n", " ")
+
+    lines = [
+        "---",
+        "id: docs.generated.pitfalls",
+        "title: 踩坑索引",
+        "summary: 从 kind=pitfall 页面自动生成的失败模式索引；勿手改。",
+        "type: reference",
+        "kind: index",
+        "status: active",
+        "owner: \"@platform\"",
+        "source_type: doc",
+        "source: schema/taxonomy.json",
+        "last_reviewed: 2026-11-11",
+        "related: []",
+        "---",
+        "",
+        "# 踩坑索引",
+        "",
+        f"> 生成文件，勿手改。运行 `python {tool_rel}/generate.py --root . --write` 重建。",
+        "> 每个坑的权威内容在它自己的页面；本页只做导航。",
+        "",
+        f"## 未解决（{len(active)}）",
+        "",
+    ]
+    if active:
+        lines += [
+            "| 严重度 | 坑 | 症状 | 检测 | 适用 | status |",
+            "|---|---|---|---|---|---|",
+        ]
+        for page in sorted(active, key=sort_key):
+            fm = page["fm"]
+            link = rel_link("docs/_generated/pitfalls.md", page["rel"])
+            applies = ", ".join(f"`{x}`" for x in (fm.get("applies_to") or []))
+            lines.append(
+                f"| {fm.get('severity', '')} | [{page['title']}]({link}) | {cell(fm.get('symptom', ''))} | "
+                f"{cell(fm.get('detect', ''))} | {applies} | {fm.get('status', '')} |"
+            )
+    else:
+        lines.append("（无）")
+    lines += ["", f"## 已解决（{len(resolved)}）", ""]
+    if resolved:
+        lines += ["| 严重度 | 坑 | 症状 | 适用 |", "|---|---|---|---|"]
+        for page in sorted(resolved, key=sort_key):
+            fm = page["fm"]
+            link = rel_link("docs/_generated/pitfalls.md", page["rel"])
+            applies = ", ".join(f"`{x}`" for x in (fm.get("applies_to") or []))
+            lines.append(
+                f"| {fm.get('severity', '')} | [{page['title']}]({link}) | {cell(fm.get('symptom', ''))} | {applies} |"
+            )
+    else:
+        lines.append("（无）")
+    targets: dict[str, list[dict]] = {}
+    for page in pitfalls:
+        for target in page["fm"].get("applies_to") or []:
+            targets.setdefault(str(target), []).append(page)
+    if targets:
+        lines += ["", "## 按适用范围", ""]
+        for target in sorted(targets):
+            lines.append(f"### `{target}`")
+            lines.append("")
+            for page in sorted(targets[target], key=sort_key):
+                link = rel_link("docs/_generated/pitfalls.md", page["rel"])
+                lines.append(f"- [{page['title']}]({link})（{page['fm'].get('severity', '')}）")
+            lines.append("")
+    if not pitfalls:
+        lines += ["", "> 本仓库还没有 `kind: pitfall` 页面。", ""]
+    return "\n".join(lines)
+
+
 def build_backlinks(pages: dict[str, dict], tax: dict) -> str:
     inbound: dict[str, list[tuple[str, str, str]]] = {}
     for page in pages.values():
@@ -250,11 +355,13 @@ def build_backlinks(pages: dict[str, dict], tax: dict) -> str:
                 continue
             target, reltype = str(item).split(":", 1)
             inbound.setdefault(target, []).append((owner, reltype, page["rel"]))
+        for target in fm.get("applies_to") or []:
+            inbound.setdefault(str(target), []).append((owner, "applies-to", page["rel"]))
     lines = [
         "---",
         "id: docs.generated.backlinks",
         "title: 反向链接",
-        "summary: 从 related 自动派生的反向链接；勿手改。",
+        "summary: 从 related 与 pitfall 的 applies_to 自动派生的反向链接；勿手改。",
         "type: reference",
         "kind: index",
         "status: active",
@@ -268,16 +375,20 @@ def build_backlinks(pages: dict[str, dict], tax: dict) -> str:
         "# 反向链接",
         "",
         "> 生成文件，勿手改。方向性关系只存一侧，本页是派生结果；对称关系按规范边去重。",
+        "> `applies_to` 是 pitfall 的专用字段，可指向页面 id 或技能 name；技能没有页面可链，故只出现在目标列。",
         "",
-        "| 目标 id | 来源 id | 关系 | 来源页面 |",
+        "| 目标 id / 技能 | 来源 id | 关系 | 来源页面 |",
         "|---|---|---|---|",
     ]
     id_to_page = {str(p["fm"].get("id", "")): p for p in pages.values()}
     for target in sorted(inbound):
         for owner, reltype, source_rel in sorted(inbound[target]):
-            meta = tax.get("relations", {}).get(reltype, {})
-            direction = meta.get("direction", "directed")
-            label = reltype if direction == "symmetric" else f"{reltype}（反向：{meta.get('inverse', 'referenced-by')}）"
+            if reltype == "applies-to":
+                label = "applies-to（反向：has-pitfall；来自 applies_to 字段）"
+            else:
+                meta = tax.get("relations", {}).get(reltype, {})
+                direction = meta.get("direction", "directed")
+                label = reltype if direction == "symmetric" else f"{reltype}（反向：{meta.get('inverse', 'referenced-by')}）"
             link = rel_link("docs/_generated/backlinks.md", source_rel)
             owner_title = id_to_page.get(owner, {}).get("title", owner)
             lines.append(f"| `{target}` | [{owner_title}]({link}) | {label} | `{source_rel}` |")
@@ -299,12 +410,17 @@ def main() -> int:
         print("DEPENDENCY_MISSING: 请先安装 requirements.txt（PyYAML、markdown-it-py）", file=sys.stderr)
         return 2
     root = Path(args.root).resolve()
+    try:
+        tool_rel = Path(__file__).resolve().parent.relative_to(root).as_posix()
+    except ValueError:
+        tool_rel = "scripts"
     tax, pages = load_pages(root)
     outputs = {
-        "AGENTS.md": build_agents(pages, tax, root),
+        "AGENTS.md": build_agents(pages, tax, root, tool_rel),
         "llms.txt": build_llms(pages, tax, root),
-        "docs/_generated/index.md": build_index(pages),
+        "docs/_generated/index.md": build_index(pages, tool_rel),
         "docs/_generated/backlinks.md": build_backlinks(pages, tax),
+        "docs/_generated/pitfalls.md": build_pitfall_index(pages, tool_rel),
     }
     problems = []
     for rel, content in outputs.items():

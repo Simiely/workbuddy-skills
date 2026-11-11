@@ -46,6 +46,7 @@ except ImportError:  # pragma: no cover - optional dependency
 LINK_SCHEMES = ("http://", "https://", "mailto:", "tel:", "javascript:", "data:")
 ADR_RE = re.compile(r"ADR-(\d{4})-[a-z0-9-]+\.md$")
 ID_RE = re.compile(r"^[a-z0-9]+(\.[a-z0-9-]+)+$")
+PITFALL_FIELDS = ("summary", "symptom", "cause", "detect", "avoid", "recover", "applies_to", "severity")
 
 
 # ---------------------------------------------------------------------------
@@ -533,6 +534,7 @@ def main() -> int:
     by_id: dict[str, str] = {}
     defines: dict[str, str] = {}
     relations: list[tuple[str, str, str, str]] = []
+    pitfalls: list[tuple[str, dict]] = []
 
     for rel, doc in docs.items():
         if is_generated(rel, generated) or rel in entry_files or rel in context_or_exempt:
@@ -556,6 +558,9 @@ def main() -> int:
         else:
             for msg in validate_schema(fm, schema):
                 report.add("SCHEMA", "ERROR", rel, msg)
+
+        if fm.get("kind") == "pitfall":
+            pitfalls.append((rel, fm))
 
         pid = str(fm.get("id", ""))
         if not ID_RE.match(pid):
@@ -650,7 +655,7 @@ def main() -> int:
 
         # 新鲜度（report / archived 不参与过期判定）
         reviewed = fm.get("last_reviewed")
-        if reviewed and fm.get("kind") != "report" and fm.get("status") != "archived":
+        if reviewed and fm.get("kind") != "report" and fm.get("status") not in ("archived", "resolved"):
             try:
                 reviewed_date = dt.date.fromisoformat(str(reviewed))
                 window = fm.get("review_days") or tax["review_days"].get(
@@ -665,7 +670,7 @@ def main() -> int:
 
         if (
             (summary_policy == "warn" or args.strict_summary)
-            and fm.get("kind") in ("standard", "index", "decision")
+            and fm.get("kind") in ("standard", "index", "decision", "pitfall")
             and not fm.get("summary")
         ):
             report.add("SUMMARY_MISSING", "WARN", rel, "standard/index/decision 建议写 summary")
@@ -719,12 +724,34 @@ def main() -> int:
             if target and str(target) not in by_id:
                 report.add("REL_TARGET", "ERROR", rel, f"{field} 指向不存在的 id：{target}")
 
+    # pitfall：字段、适用目标、自引用
+    for rel, fm in pitfalls:
+        pid = str(fm.get("id", ""))
+        for field in PITFALL_FIELDS:
+            value = fm.get(field)
+            if value is None or value == "" or value == []:
+                report.add("PITFALL_FIELD", "ERROR", rel, f"kind=pitfall 缺少 {field}")
+        severity = fm.get("severity")
+        if severity and severity not in ("low", "medium", "high", "critical"):
+            report.add("PITFALL_SEVERITY", "ERROR", rel, f"severity 不在 low/medium/high/critical：{severity!r}")
+        for target in fm.get("applies_to") or []:
+            target = str(target)
+            if target == pid:
+                report.add("PITFALL_SELF", "ERROR", rel, "applies_to 不能指向自己")
+            elif target not in by_id and target not in seen_skill_names:
+                report.add("PITFALL_TARGET", "ERROR", rel, f"applies_to 指向不存在的页面/技能：{target}")
+
     # 链接与锚点
     inbound: set[str] = set()
     # related 也是入链：只通过关系引用、没有正文链接的页面不应被判孤儿
     for _owner, target, _reltype, _source_rel in relations:
         if target in by_id:
             inbound.add(by_id[target])
+    # pitfall 的 applies_to 也是入链：坑被目标页“引用”，不应判孤儿
+    for _rel, fm in pitfalls:
+        for target in fm.get("applies_to") or []:
+            if str(target) in by_id:
+                inbound.add(by_id[str(target)])
     heading_cache: dict[str, set[str]] = {rel: d.anchors for rel, d in docs.items()}
 
     def headings_for(path: Path) -> set[str]:

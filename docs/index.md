@@ -35,8 +35,8 @@ related: ["docs.concepts.skill-model:see-also", "docs.decisions.0001:see-also"]
 
 ```bash
 python -m pip install -r requirements.txt
-python scripts/check_repo.py --root .
-python scripts/generate.py --root . --check
+python tools/repo-kit/check_repo.py --root .
+python tools/repo-kit/generate.py --root . --check
 ```
 
 Phase 1 只校验根文档、`docs/**` 与 `skills/**/SKILL.md` 的链接；`SKILL.md` 不做通用页面 schema

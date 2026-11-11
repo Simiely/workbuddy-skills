@@ -1,5 +1,5 @@
 {
-  "version": "2.2.1",
+  "version": "2.3.2",
   "name": "workbuddy-skills",
   "include": [
     "README.md",
@@ -22,8 +22,8 @@
   },
   "link_only_files": ["skills/**/references/*.md"],
   "types": ["tutorial", "how-to", "reference", "explanation"],
-  "kinds": ["standard", "decision", "index", "note", "glossary", "report"],
-  "statuses": ["draft", "active", "superseded", "archived"],
+  "kinds": ["standard", "decision", "index", "note", "glossary", "report", "pitfall"],
+  "statuses": ["draft", "active", "resolved", "superseded", "archived"],
   "tiers": ["normal", "critical"],
   "confidences": ["low", "medium", "high"],
   "topics": ["skills", "github", "docs", "diagnostics", "design", "governance"],
@@ -68,7 +68,8 @@
     "AGENTS.md",
     "llms.txt",
     "docs/_generated/index.md",
-    "docs/_generated/backlinks.md"
+    "docs/_generated/backlinks.md",
+    "docs/_generated/pitfalls.md"
   ],
   "ignore": [
     ".github/**",
