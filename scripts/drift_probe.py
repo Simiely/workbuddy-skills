@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""repo-kit v2.0 正对照 + 负对照。
+"""repo-kit v2.3 正对照 + 负对照（kit 自测，不是仓库验收）。
 
 - 负对照：合法的基线仓库必须 ERROR=0、WARN=0。
 - 正对照：逐条注入 8 类已知漂移，确认校验器真的会红，再恢复并复跑基线。
 - 生成对照：generate.py --check 在基线上必须通过。
+
+依赖 kit 自带的 `examples/` 夹具；消费仓库没有这些文件时会 SKIP（退出 0）。
+仓库验收请跑 check_repo.py 与 generate.py --check。
 
 用法：
     python scripts/drift_probe.py --root .
@@ -17,6 +20,8 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
 
 CASES = [
     ("重命名文件但不更新引用", "examples/code/docs/retry.md", "rename", "LINK_BROKEN"),
@@ -39,7 +44,7 @@ def copy_repo(src: Path, dst: Path) -> None:
 
 def run_check(root: Path) -> dict:
     proc = subprocess.run(
-        [sys.executable, str(root / "scripts/check_repo.py"), "--root", str(root), "--json"],
+        [sys.executable, str(HERE / "check_repo.py"), "--root", str(root), "--json"],
         capture_output=True, text=True,
     )
     try:
@@ -86,10 +91,16 @@ def restore(p: Path, original: str, moved: Path | None) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="repo-kit v2.0 正负对照")
+    ap = argparse.ArgumentParser(description="repo-kit 正负对照（kit 自测）")
     ap.add_argument("--root", default=".")
     args = ap.parse_args()
     source = Path(args.root).resolve()
+    missing = sorted({rel for _, rel, _, _ in CASES if not (source / rel).exists()})
+    if missing:
+        print("SKIP: drift_probe 是 repo-kit 校验器的自测，需要 kit 自带的 examples/ 夹具。")
+        print("      当前仓库缺少：" + ", ".join(missing))
+        print("      仓库验收请跑 check_repo.py 与 generate.py --check。")
+        return 0
     tmp = Path(tempfile.mkdtemp(prefix="repo-kit-v2-probe-"))
     root = tmp / "kit"
     copy_repo(source, root)
@@ -103,7 +114,7 @@ def main() -> int:
     print(f"负对照：基线 PASS（WARN={baseline.get('warnings', 0)}）\n")
 
     gen = subprocess.run(
-        [sys.executable, str(root / "scripts/generate.py"), "--root", str(root), "--check"],
+        [sys.executable, str(HERE / "generate.py"), "--root", str(root), "--check"],
         capture_output=True, text=True,
     )
     gen_ok = gen.returncode == 0
