@@ -1,0 +1,63 @@
+name: docs-check
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'skills/**/SKILL.md'
+      - 'schema/**'
+      - 'scripts/**'
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'DEVELOPMENT.md'
+      - 'CHANGELOG.md'
+      - 'llms.txt'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - name: Invariants
+        run: python scripts/check_repo.py --root . --json
+      - name: Generated artifacts are up to date
+        run: python scripts/generate.py --root . --check
+
+  internal-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --offline --include-fragments --no-progress
+            'docs/**/*.md' 'skills/**/SKILL.md' 'AGENTS.md' 'llms.txt'
+          fail: true
+
+  sarif:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - name: Generate SARIF
+        run: python scripts/check_repo.py --root . --format sarif > repo-kit.sarif || true
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: repo-kit.sarif

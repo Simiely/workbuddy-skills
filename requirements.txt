@@ -1,0 +1,4 @@
+PyYAML>=6.0
+markdown-it-py>=3.0
+# Optional: jsonschema>=4.20 for full JSON Schema validation.
+# scripts/check_repo.py includes a minimal validator for the schema subset used here.

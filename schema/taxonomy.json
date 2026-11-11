@@ -1,0 +1,80 @@
+{
+  "version": "2.2.1",
+  "name": "workbuddy-skills",
+  "include": [
+    "README.md",
+    "AGENTS.md",
+    "DEVELOPMENT.md",
+    "CHANGELOG.md",
+    "docs/**",
+    "skills/**/SKILL.md",
+    "skills/**/references/*.md"
+  ],
+  "context_files": ["AGENTS.md"],
+  "exempt_basenames": [],
+  "slugger": "github",
+  "summary_policy": "warn",
+  "skills": {
+    "glob": "skills/**/SKILL.md",
+    "schema": "schema/skills.schema.json",
+    "name_matches_dir": true,
+    "min_description": 40
+  },
+  "link_only_files": ["skills/**/references/*.md"],
+  "types": ["tutorial", "how-to", "reference", "explanation"],
+  "kinds": ["standard", "decision", "index", "note", "glossary", "report"],
+  "statuses": ["draft", "active", "superseded", "archived"],
+  "tiers": ["normal", "critical"],
+  "confidences": ["low", "medium", "high"],
+  "topics": ["skills", "github", "docs", "diagnostics", "design", "governance"],
+  "relations": {
+    "depends-on": {
+      "direction": "directed",
+      "inverse": "depended-on-by",
+      "transitive": false
+    },
+    "extends": {
+      "direction": "directed",
+      "inverse": "extended-by",
+      "transitive": true
+    },
+    "spawned-from": {
+      "direction": "directed",
+      "inverse": "spawned",
+      "transitive": false
+    },
+    "supersedes": {
+      "direction": "directed",
+      "inverse": "superseded-by",
+      "transitive": false
+    },
+    "contradicts": {
+      "direction": "symmetric",
+      "inverse": null,
+      "transitive": false
+    },
+    "see-also": {
+      "direction": "symmetric",
+      "inverse": null,
+      "transitive": false
+    }
+  },
+  "review_days": {
+    "normal": 365,
+    "critical": 90
+  },
+  "entry_files": ["README.md", "DEVELOPMENT.md", "CHANGELOG.md"],
+  "generated_files": [
+    "AGENTS.md",
+    "llms.txt",
+    "docs/_generated/index.md",
+    "docs/_generated/backlinks.md"
+  ],
+  "ignore": [
+    ".github/**",
+    "tests/**",
+    "**/node_modules/**",
+    "**/.venv/**",
+    "**/__pycache__/**"
+  ]
+}

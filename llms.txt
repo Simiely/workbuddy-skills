@@ -1,0 +1,22 @@
+# workbuddy-skills
+
+> 文档索引与机器可读入口：内容契约、类型化关系、证据与新鲜度。
+> 生成文件，勿手改。
+
+## Core
+
+- [README](./README.md)
+- [文档索引](./docs/index.md)
+- [决策索引](./docs/decisions/index.md)
+
+## By type
+
+### reference
+
+- [决策索引](./docs/decisions/index.md) — ADR 的唯一索引；编号唯一，不要求连续。
+- [文档治理索引](./docs/index.md) — workbuddy-skills 的治理入口；技能本体仍在 skills/，不复制。
+
+### explanation
+
+- [技能单元模型](./docs/concepts/skill-model.md) — 一个技能一个目录，SKILL.md 是唯一入口；frontmatter 用 name/description，正文三层。
+- [ADR-0001 用 repo-kit v2.2 做文档机器校验层](./docs/decisions/ADR-0001-adopt-repo-kit.md) — 不重构技能库，只给根文档、docs/ 与 SKILL.md 链接加机器校验。

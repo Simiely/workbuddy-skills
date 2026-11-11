@@ -19,6 +19,7 @@ skills/_archived/   已归档技能（不再维护，保留正文供查阅，SKI
 
 **SKILL.md 格式约定**：
 - frontmatter：`name`（英文短名）+ `description`（触发词 + 适用对象 + 能力摘要 + 核心价值）
+- 机器校验：`schema/skills.schema.json` 校验 name/description；name 必须与目录名一致，description 至少 40 字符
 - 正文三层：**A 主线**（必做流程，每步写 动作/产出/铁律/工具引用，读者 2 分钟掌握全流程）/ **B 工具库**（按需查，每个工具标触发条件）/ **C 检查与沉淀**（checklist 分"代码审查点/流程合规点"两组 + 落盘规范）
 - 版本历史不留在正文（只留当前版本一行），修订痕迹进 CHANGELOG
 
