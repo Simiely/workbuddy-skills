@@ -32,7 +32,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
-$lockPath = Join-Path $repo 'schema\kit.lock.json'
+$lockPath = Join-Path $repo 'schema' 'kit.lock.json'
 
 function Get-Sha256([string]$Path) {
     $h = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLower()
@@ -87,13 +87,13 @@ if (-not $Profile) {
 if (-not $Source) {
     $Source = Join-Path (Split-Path $repo -Parent) 'repo-kit-v2'
 }
-if (-not (Test-Path -LiteralPath (Join-Path $Source 'scripts\check_repo.py'))) {
+if (-not (Test-Path -LiteralPath (Join-Path $Source 'scripts' 'check_repo.py'))) {
     Write-Output ('ERROR: kit source not found: ' + $Source)
     exit 2
 }
 
-$version = (Read-Json (Join-Path $Source 'schema\taxonomy.json')).version
-$toolDir = Join-Path $repo 'tools\repo-kit'
+$version = (Read-Json (Join-Path $Source 'schema' 'taxonomy.json')).version
+$toolDir = Join-Path $repo 'tools' 'repo-kit'
 New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
 
 $files = [ordered]@{}
@@ -109,14 +109,14 @@ function Install-File([string]$From, [string]$ToRel) {
     Write-Output ('INSTALLED ' + $ToRel)
 }
 
-Install-File (Join-Path $Source 'scripts\check_repo.py') 'tools/repo-kit/check_repo.py'
+Install-File (Join-Path $Source 'scripts' 'check_repo.py') 'tools/repo-kit/check_repo.py'
 if ($Profile -ne 'link-only') {
-    Install-File (Join-Path $Source 'scripts\generate.py') 'tools/repo-kit/generate.py'
+    Install-File (Join-Path $Source 'scripts' 'generate.py') 'tools/repo-kit/generate.py'
 }
-Install-File (Join-Path $Source 'schema\frontmatter.schema.json') 'schema/frontmatter.schema.json'
+Install-File (Join-Path $Source 'schema' 'frontmatter.schema.json') 'schema/frontmatter.schema.json'
 
-$skillsSrc = Join-Path $Source 'schema\skills.schema.json'
-$skillsDst = Join-Path $repo 'schema\skills.schema.json'
+$skillsSrc = Join-Path $Source 'schema' 'skills.schema.json'
+$skillsDst = Join-Path $repo 'schema' 'skills.schema.json'
 if ((Test-Path -LiteralPath $skillsSrc) -and (($Profile -eq 'skills') -or ($Profile -eq 'link-only') -or (Test-Path -LiteralPath $skillsDst))) {
     Install-File $skillsSrc 'schema/skills.schema.json'
 }
