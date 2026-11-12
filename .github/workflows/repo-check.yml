@@ -44,6 +44,7 @@ jobs:
         with:
           args: >-
             --offline --include-fragments --no-progress
+            --exclude-path 'docs/_template.md'
             'docs/**/*.md' 'skills/**/SKILL.md' 'AGENTS.md' 'llms.txt'
           fail: true
 

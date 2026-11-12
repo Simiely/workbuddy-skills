@@ -1,6 +1,6 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-10-30 v1.12.0（v1.12.0 新增 illustrator-artboard-clip：用 Illustrator 脚本按画板矩形剪切蒙版收素材，含溢出扫描 / 画板收边 / 零弹窗无头启动三脚本 + AI 2026 实测 API 坑位清单）　← 前序：2026-10-08 v1.11.1
+> 📌 **文档基线**：2026-11-11 v1.13.0（v1.13.0 修 github-push-universal 三处推送故障：中文路径 URL 编码 / Basic 认证头 / 直连失败自动重试 7890，并让 Contents API 单项失败不中断）　← 前序：2026-11-02 v1.12.1（illustrator-artboard-clip 坑位 14 条）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
 
 ## 技术栈
@@ -13,7 +13,11 @@
 
 - 沙箱内 `git push` 到 github.com 慢/卡/弹窗 → 用 **github-env-fix** 先根治凭据弹窗（设全局 `credential.helper=`），再走 **GitHub Contents API** 或 git 推送（见 github-push-universal / github-release）
 - ⚠️ **墙内访问 github：`127.0.0.1:7890`(Clash) 是可靠通道之一（建议保留 .gitconfig 的 http.proxy=7890），但通道时通时断**——2026-10-08 实测同一天里 7890 死过、直连成功过又失败过、代理 502 间歇。⇒ **每次先跑出口矩阵（env 隧道 / 7890 / 直连），一次失败 ≠ 此路不通，直连与代理都要试并自动重试**。真正让 git 卡死/弹窗的是 **credential helper（helper-selector/GCM）**，不是代理。
-- 沙箱内 git 需要凭据时会弹 `credentialhelperselector`（无交互挂死）→ remote URL 内嵌 token / `-c credential.helper=` / 先跑 github-env-fix 根治，token 走 env/URL 内嵌
+- 沙箱内 git 需要凭据时会弹 `credentialhelperselector`（无交互挂死）→ **改用 Basic 认证头**
+  （`-c http.extraHeader="Authorization: Basic base64(x-access-token:PAT)"`）；
+  URL 内嵌 token（`https://x-access-token:TOKEN@…`）2026-11-11 实测会被拒（`Invalid username or token`）
+- **Contents API 的路径必须 URL 编码**（`urllib.parse.quote(path, safe='/')`）：中文文件名不编码会抛
+  `UnicodeEncodeError`，且往往已经把前几个文件 PUT 上去了 → `push_repo.py` 已内置 `url_path()`
 - 判断网络**用 Python urllib，不用 curl**（WorkBuddy 劫持 curl 致 exit 43 假失败）
 - 认证：`Authorization: Bearer <PAT>`；未认证访问 GitHub API 会限流，一律带 token
 - token 只用于 API 调用，**绝不写进任何被提交的文件**
