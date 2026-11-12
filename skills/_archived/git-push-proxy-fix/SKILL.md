@@ -25,7 +25,7 @@ status: archived
 **失败现象到决策（不要反复重试 git push）**：
 - `curl`（无 `-w` 写法）走代理能 200 → 代理与域名都通，**问题在 git 侧** → 走本技能 A 主线
 - `curl` 走代理也 000/超时 → 代理或网络问题，先处理代理（切 Clash 节点）再回来
-- git 怎么配都连不上、但 `api.github.com` 可达 → 切 [github-contents-api-push](../../github-contents-api-push/SKILL.md)（Contents API 逐文件 PUT）
+- git 怎么配都连不上、但 `api.github.com` 可达 → 切 [github-contents-api-push](../github-contents-api-push/SKILL.md)（Contents API 逐文件 PUT）
 
 ## 前置准备
 
@@ -121,7 +121,7 @@ GIT_TRACE=1 git -c http.verbose=true push origin main 2>&1 | Select-String -Patt
 
 ### B3. 与 Contents API 的分流判断
 - 本技能走通（删空覆盖后 push 成功）→ 完事，无需 Contents API
-- 删完仍 `Connection reset`/`Could not connect` 且 `api.github.com` 可达 → 网络环境彻底不通 git 通道，切 [github-contents-api-push](../../github-contents-api-push/SKILL.md)
+- 删完仍 `Connection reset`/`Could not connect` 且 `api.github.com` 可达 → 网络环境彻底不通 git 通道，切 [github-contents-api-push](../github-contents-api-push/SKILL.md)
 
 ## C 检查与沉淀
 

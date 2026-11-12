@@ -1,0 +1,7 @@
+# Python 校验工具缓存
+__pycache__/
+*.pyc
+.venv/
+
+# CI 生成的 SARIF
+repo-kit.sarif
