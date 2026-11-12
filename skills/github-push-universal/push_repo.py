@@ -33,7 +33,7 @@ token 来源（优先级从高到低）：
   - 不把 token 写进任何文件 / 不进仓库 / 不打日志，只在内存中使用。
   - Contents API 采用幂等对齐：本地与远端一致的路径不产生多余 commit。
 """
-import os, sys, subprocess, base64, json, time, re
+import os, sys, subprocess, base64, json, time, re, urllib.parse
 
 API = "https://api.github.com"
 
@@ -98,6 +98,36 @@ def blob_sha_in_repo(repo, path):
     return out.strip() if code == 0 and out.strip() else None
 
 
+# ---------------------------------------------------------------- url helpers
+def url_path(path, safe="/"):
+    """URL-encode a repo path / ref name.
+
+    中文文件名、空格、`#`、`?` 等字符不编码就直接拼进 URL，urllib 会在构造请求时抛
+    UnicodeEncodeError（2026-11-11 实测：docs/illustrator/svg还原分层AI.md 把 Contents API
+    的 PUT 打崩，且崩之前已写了前几个文件，远端留下半套状态）。
+    """
+    return urllib.parse.quote(path, safe=safe)
+
+
+def basic_auth(token):
+    """GitHub 支持 HTTP 基本认证：用户名随便填，密码用 PAT。
+
+    比 `https://x-access-token:TOKEN@github.com/...` 稳：URL 内嵌 token 在本机实测被拒
+    （`Invalid username or token`，同一 token 走 API 完全正常），且会留在 shell 历史/进程列表里。
+    """
+    return "Basic " + base64.b64encode(("x-access-token:" + token).encode()).decode()
+
+
+def port_open(host, port, timeout=1.0):
+    import socket
+    s = socket.socket()
+    s.settimeout(timeout)
+    try:
+        return s.connect_ex((host, port)) == 0
+    finally:
+        s.close()
+
+
 # ---------------------------------------------------------------- remote probing
 def probe_remote(repo):
     code, out, _ = git(repo, "remote", "get-url", "origin", timeout=15)
@@ -150,7 +180,8 @@ class GitHubAPI:
                 return e.code, {"message": raw[:200]}
 
     def branch_sha(self, branch):
-        s, d = self._req("GET", "/repos/%s/%s/branches/%s" % (self.owner, self.repo, branch))
+        # 分支名可能带 `/`，必须整体编码（否则被当成路径分隔符）
+        s, d = self._req("GET", "/repos/%s/%s/branches/%s" % (self.owner, self.repo, url_path(branch, safe="")))
         return d.get("commit", {}).get("sha") if s == 200 else None
 
     def tree_list(self, branch):
@@ -167,14 +198,14 @@ class GitHubAPI:
         return out
 
     def delete_path(self, path, blob_sha, branch, message):
-        return self._req("DELETE", "/repos/%s/%s/contents/%s" % (self.owner, self.repo, path),
+        return self._req("DELETE", "/repos/%s/%s/contents/%s" % (self.owner, self.repo, url_path(path)),
                          {"message": message, "sha": blob_sha, "branch": branch})
 
     def put_path(self, path, content_b64, old_sha, branch, message):
         data = {"message": message, "content": content_b64, "branch": branch}
         if old_sha:
             data["sha"] = old_sha
-        return self._req("PUT", "/repos/%s/%s/contents/%s" % (self.owner, self.repo, path), data)
+        return self._req("PUT", "/repos/%s/%s/contents/%s" % (self.owner, self.repo, url_path(path)), data)
 
 
 def walk_local_tree(repo, root):
@@ -233,6 +264,7 @@ def contents_api_push(repo, cfg):
     log("Contents API: 待同步 %d 项（%d 写入 / %d 删除）" %
         (len(plan), sum(1 for p in plan if p[0] == "put"), sum(1 for p in plan if p[0] == "del")))
     put_n = del_n = 0
+    failed = []      # 单项失败不中断：跑完再汇总，避免"崩在中途、远端半套状态"没人知道
     for act in plan:
         kind, path = act[0], act[1]
         if kind == "put":
@@ -241,7 +273,8 @@ def contents_api_push(repo, cfg):
             if s in (200, 201):
                 log("  [PUT]    %s" % path); put_n += 1
             else:
-                die("PUT %s 失败: %s" % (path, json.dumps(d)[:160]))
+                failed.append("PUT %s -> HTTP %s %s" % (path, s, json.dumps(d, ensure_ascii=False)[:120]))
+                log("  [FAIL]   %s (HTTP %s)" % (path, s))
         else:
             sha = act[3]
             if not sha:
@@ -250,43 +283,76 @@ def contents_api_push(repo, cfg):
             if s == 200:
                 log("  [DELETE] %s" % path); del_n += 1
             else:
-                die("DELETE %s 失败: %s" % (path, json.dumps(d)[:160]))
+                failed.append("DELETE %s -> HTTP %s %s" % (path, s, json.dumps(d, ensure_ascii=False)[:120]))
+                log("  [FAIL]   %s (HTTP %s)" % (path, s))
+    if failed:
+        die("Contents API: %d/%d 项失败（已成功 %d 项），远端是【部分更新】状态，需重跑或改走 git push：\n  %s"
+            % (len(failed), len(plan), put_n + del_n, "\n  ".join(failed[:10])))
     log("Contents API: 完成 %d PUT / %d DELETE" % (put_n, del_n))
     return True
 
 
 # ---------------------------------------------------------------- git push try
+def _remote_url(cfg):
+    return "https://github.com/%s/%s.git" % (cfg["owner"], cfg["repo"])
+
+
+def _git_net_args(cfg, proxy=None):
+    """统一的网络/认证参数：禁 credential helper（防 GCM 弹窗）+ Basic 认证头。"""
+    args = ["-c", "credential.helper=",
+            "-c", "http.sslBackend=openssl",
+            "-c", "http.version=HTTP/1.1",
+            "-c", "http.extraHeader=Authorization: " + basic_auth(cfg["token"])]
+    if proxy:
+        args += ["-c", "http.proxy=" + proxy, "-c", "https.proxy=" + proxy]
+    return args
+
+
+def _proxy_candidates():
+    """先直连；直连失败再走本机 7890（Clash）。
+
+    实测（2026-11-11 本机）：`github.com` 直连 21s 超时、走 7890 通；
+    而 `api.github.com` 直连正常 —— 同一网络下两个域名出口不一致是常态，
+    所以 git 通道要"直连失败自动换代理重试一次"，不能一次失败就判死。
+    """
+    out = [(None, "direct")]
+    if port_open("127.0.0.1", 7890):
+        out.append(("http://127.0.0.1:7890", "proxy-7890"))
+    return out
+
+
 def try_git_push(repo, cfg):
     branch = cfg["branch"]
-    remote_url = "https://x-access-token:%s@github.com/%s/%s.git" % (cfg["token"], cfg["owner"], cfg["repo"])
-    cmd = ["git", "-C", repo,
-           "-c", "credential.helper=",
-           "-c", "http.sslBackend=openssl",
-           "-c", "http.version=HTTP/1.1",
-           "push", remote_url, "HEAD:" + branch]
-    code, out, err = run(cmd, timeout=90)
-    combined = out + "\n" + err
-    if code == 0:
-        return True, "git-push-ok"
-    low = combined.lower()
-    if ("credentialhelperselector" in low or "credential" in low or "askpass" in low
-            or "no such device" in low or "/dev/tty" in low):
-        return False, "credential-triggered: " + combined[-200:]
-    if code == 124:
-        return False, "git-timeout"
-    return False, "git-fail(code=%s): %s" % (code, combined[-300:])
+    url = _remote_url(cfg)
+    errors = []
+    for proxy, label in _proxy_candidates():
+        cmd = ["git", "-C", repo] + _git_net_args(cfg, proxy) + ["push", url, "HEAD:" + branch]
+        code, out, err = run(cmd, timeout=120)
+        combined = out + "\n" + err
+        if code == 0:
+            if proxy:
+                log("git push: 直连不通，改走 %s 成功" % label)
+            return True, "git-push-ok(%s)" % label
+        low = combined.lower()
+        if ("credentialhelperselector" in low or "credential" in low or "askpass" in low
+                or "no such device" in low or "/dev/tty" in low):
+            return False, "credential-triggered: " + combined[-200:]
+        errors.append("%s: %s" % (label, "timeout" if code == 124 else combined.strip()[-200:]))
+    return False, "git-fail | " + " || ".join(errors)
 
 
 def sync_local_ref_to_remote(repo, cfg):
     """After push, align local refs so `git status` matches remote."""
-    remote_url = "https://x-access-token:%s@github.com/%s/%s.git" % (cfg["token"], cfg["owner"], cfg["repo"])
-    code, _, _ = run(["git", "-C", repo,
-                      "-c", "credential.helper=",
-                      "-c", "http.sslBackend=openssl",
-                      "-c", "http.version=HTTP/1.1",
-                      "fetch", remote_url, cfg["branch"] + ":refs/remotes/origin/" + cfg["branch"]],
-                     timeout=90)
-    if code == 0:
+    url = _remote_url(cfg)
+    ok = False
+    for proxy, label in _proxy_candidates():
+        code, _, _ = run(["git", "-C", repo] + _git_net_args(cfg, proxy) +
+                         ["fetch", url, cfg["branch"] + ":refs/remotes/origin/" + cfg["branch"]],
+                         timeout=120)
+        if code == 0:
+            ok = True
+            break
+    if ok:
         code2, _, _ = git(repo, "update-ref", "refs/heads/" + cfg["branch"],
                           "refs/remotes/origin/" + cfg["branch"], timeout=15)
         # also fix upstream head symbolic
