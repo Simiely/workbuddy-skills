@@ -1,7 +1,9 @@
 # AGENTS.md · 项目规则
 
-> 📌 **文档基线**：2026-11-11 v1.13.0（v1.13.0 修 github-push-universal 三处推送故障：中文路径 URL 编码 / Basic 认证头 / 直连失败自动重试 7890，并让 Contents API 单项失败不中断）　← 前序：2026-11-02 v1.12.1（illustrator-artboard-clip 坑位 14 条）
+> 📌 **文档基线**：2026-11-11 · v1.13.0 · commit `a97b4b5`（v1.13.0 修 github-push-universal 三处推送故障：中文路径 URL 编码 / Basic 认证头 / 直连失败自动重试 7890，并让 Contents API 单项失败不中断）　← 前序：2026-11-02 v1.12.1（illustrator-artboard-clip 坑位 14 条）
 > **更新文档/代码后，请更新此行**（日期 + 新 commit hash），并在 CHANGELOG 追加版本
+>
+> 生成文件，勿手改。改规则请改 `schema/agents.template.md`，再运行 `python tools/repo-kit/generate.py --root . --write`。
 
 ## 技术栈
 
@@ -42,3 +44,9 @@
 ## 详细规则（按需 @引用）
 
 - @DEVELOPMENT.md  仓库结构、新增技能流程、GitHub 推送方案
+
+## 当前规模
+
+- 页面：0（critical=0）
+- 按 type：none
+- 词表版本：2.4.0

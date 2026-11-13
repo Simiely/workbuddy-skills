@@ -1,0 +1,10 @@
+# workbuddy-skills
+
+> 文档索引与机器可读入口：内容契约、类型化关系、证据与新鲜度。
+> 生成文件，勿手改。
+
+## Core
+
+- [README](./README.md)
+
+## By type
