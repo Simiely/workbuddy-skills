@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-11-16 · 文档维护：升级 repo-kit 2.5.3 / 规范 2.1.2
+
+不改技能内容，不产生版本号。
+
+- 重装 kit：`schema/kit.lock.json` 写入 `v2.5.3 / spec 2.1.2`
+- 验收：`REPO CHECK: PASS`（ERROR=0、WARN=0）、`GENERATE CHECK: PASS`
+- 15 个 `SKILL.md` 契约复查无新增问题
+
 ## v1.13.0（2026-11-11）
 
 - github-push-universal：**修三处实打实的推送故障**（都来自一次真实推送 design-tips 的实战）：
