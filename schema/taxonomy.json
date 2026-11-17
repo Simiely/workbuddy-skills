@@ -1,5 +1,5 @@
 {
-  "version": "2.5.3",
+  "version": "2.7.0",
   "name": "workbuddy-skills",
   "include": [
     "README.md",
@@ -10,17 +10,23 @@
     "skills/**/SKILL.md",
     "skills/**/references/*.md"
   ],
-  "context_files": ["AGENTS.md"],
-  "exempt_basenames": [],
-  "slugger": "github",
-  "summary_policy": "warn",
+  "frontmatter_exempt": {
+    "names": [
+      "AGENTS.md",
+      "CHANGELOG.md",
+      "DEVELOPMENT.md",
+      "README.md"
+    ],
+    "paths": [
+      "skills/**/references/*.md"
+    ]
+  },
   "skills": {
     "glob": "skills/**/SKILL.md",
     "schema": "schema/skills.schema.json",
     "name_matches_dir": true,
     "min_description": 40
   },
-  "link_only_files": ["skills/**/references/*.md"],
   "types": ["tutorial", "how-to", "reference", "explanation"],
   "kinds": ["standard", "decision", "index", "note", "glossary", "report", "pitfall"],
   "statuses": ["draft", "active", "resolved", "superseded", "archived"],
@@ -36,7 +42,6 @@
     "see-also": { "direction": "symmetric", "inverse": null, "transitive": false }
   },
   "review_days": { "normal": 365, "critical": 90 },
-  "entry_files": ["README.md", "DEVELOPMENT.md", "CHANGELOG.md"],
   "generated_files": [
     "AGENTS.md",
     "llms.txt",
